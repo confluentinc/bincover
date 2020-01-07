@@ -497,7 +497,7 @@ func TestCoverageCollector_RunBinary(t *testing.T) {
 				CollectCoverage:        true,
 			},
 			wantPanic:    true,
-			panicMessage: "test coverage must be enabled when CollectCoverage is set to true",
+			panicMessage: "coverage mode cannot be empty. test coverage must be enabled when CollectCoverage is set to true",
 			callSetup:    true,
 		},
 		{

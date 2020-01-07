@@ -128,7 +128,7 @@ func (c *CoverageCollector) RunBinary(binPath string, mainTestName string, env [
 			c.coverMode = coverMode
 		}
 		if c.coverMode == "" {
-			panic("test coverage must be enabled when CollectCoverage is set to true")
+			panic("coverage mode cannot be empty. test coverage must be enabled when CollectCoverage is set to true")
 		}
 		// https://github.com/wadey/gocovmerge/blob/b5bfa59ec0adc420475f97f89b58045c721d761c/gocovmerge.go#L18
 		if c.coverMode != coverMode {

@@ -69,7 +69,6 @@ func TestCoverageCollector_Setup(t *testing.T) {
 			c := &CoverageCollector{
 				MergedCoverageFilename: tt.fields.MergedCoverageFilename,
 				CollectCoverage:        tt.fields.CollectCoverage,
-				tmpArgsFilePrefix:      tt.fields.tmpArgsFilePrefix,
 			}
 			if err := c.Setup(); (err != nil) != tt.wantErr {
 				t.Errorf("Setup() error = %v, wantErr %v", err, tt.wantErr)
@@ -259,8 +258,6 @@ func TestNewCoverageCollector(t *testing.T) {
 			want: &CoverageCollector{
 				MergedCoverageFilename: "fake.file",
 				CollectCoverage:        false,
-				tmpArgsFilePrefix:      defaultTmpArgsFilePrefix,
-				tmpCoverageFilePrefix:  defaultTmpCoverageFilePrefix,
 			},
 		},
 	}
@@ -342,8 +339,6 @@ func TestCoverageCollector_writeArgs(t *testing.T) {
 		coverMode              string
 		tmpCoverageFiles       []*os.File
 		setupFinished          bool
-		tmpArgsFilePrefix      string
-		tmpCoverageFilePrefix  string
 	}
 	type args struct {
 		args []string
@@ -385,8 +380,6 @@ func TestCoverageCollector_writeArgs(t *testing.T) {
 				coverMode:              tt.fields.coverMode,
 				tmpCoverageFiles:       tt.fields.tmpCoverageFiles,
 				setupFinished:          tt.fields.setupFinished,
-				tmpArgsFilePrefix:      tt.fields.tmpArgsFilePrefix,
-				tmpCoverageFilePrefix:  tt.fields.tmpCoverageFilePrefix,
 			}
 			if err := c.writeArgs(tt.args.args); (err != nil) != tt.wantErr {
 				t.Errorf("writeArgs() error = %v, wantErr %v", err, tt.wantErr)

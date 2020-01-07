@@ -27,8 +27,6 @@ type CoverageCollector struct {
 	coverMode              string
 	tmpCoverageFiles       []*os.File
 	setupFinished          bool
-	tmpArgsFilePrefix      string
-	tmpCoverageFilePrefix  string
 }
 
 // NewCoverageCollector initializes a CoverageCollector with the specified
@@ -39,8 +37,6 @@ func NewCoverageCollector(mergedCoverageFilename string, collectCoverage bool) *
 	return &CoverageCollector{
 		MergedCoverageFilename: mergedCoverageFilename,
 		CollectCoverage:        collectCoverage,
-		tmpArgsFilePrefix:      defaultTmpArgsFilePrefix,
-		tmpCoverageFilePrefix:  defaultTmpCoverageFilePrefix,
 	}
 }
 
@@ -49,7 +45,7 @@ func (c *CoverageCollector) Setup() error {
 		return errors.New("merged coverage profile filename cannot be empty when CollectCoverage is true")
 	}
 	var err error
-	c.tmpArgsFile, err = ioutil.TempFile("", c.tmpArgsFilePrefix)
+	c.tmpArgsFile, err = ioutil.TempFile("", defaultTmpArgsFilePrefix)
 	if err != nil {
 		return errors.Wrap(err, "error creating temporary args file")
 	}
@@ -98,12 +94,12 @@ func (c *CoverageCollector) RunBinary(binPath string, mainTestName string, env [
 	}
 	var binArgs string
 	if c.CollectCoverage {
-		f, err := ioutil.TempFile("", c.tmpCoverageFilePrefix)
+		tempCovFile, err := ioutil.TempFile("", defaultTmpCoverageFilePrefix)
 		if err != nil {
 			return "", -1, err
 		}
-		c.tmpCoverageFiles = append(c.tmpCoverageFiles, f)
-		binArgs = fmt.Sprintf("-test.run=%s -test.coverprofile=%s -args-file=%s", mainTestName, f.Name(), c.tmpArgsFile.Name())
+		c.tmpCoverageFiles = append(c.tmpCoverageFiles, tempCovFile)
+		binArgs = fmt.Sprintf("-test.run=%s -test.coverprofile=%s -args-file=%s", mainTestName, tempCovFile.Name(), c.tmpArgsFile.Name())
 	} else {
 		binArgs = fmt.Sprintf("-test.run=%s -args-file=%s", mainTestName, c.tmpArgsFile.Name())
 	}

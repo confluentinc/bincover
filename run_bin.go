@@ -13,21 +13,22 @@ import (
 )
 
 const (
-	set                   = "set"
-	count                 = "count"
-	atomic                = "atomic"
-	tmpArgsFilePrefix     = "integ_args"
-	tmpCoverageFilePrefix = "temp_coverage"
+	set                          = "set"
+	count                        = "count"
+	atomic                       = "atomic"
+	defaultTmpArgsFilePrefix     = "integ_args"
+	defaultTmpCoverageFilePrefix = "temp_coverage"
 )
 
 type CoverageCollector struct {
 	MergedCoverageFilename string
 	CollectCoverage        bool
-	testNum                int
 	tmpArgsFile            *os.File
 	coverMode              string
-	tmpCoverageFilenames   []string
+	tmpCoverageFiles       []*os.File
 	setupFinished          bool
+	tmpArgsFilePrefix      string
+	tmpCoverageFilePrefix  string
 }
 
 // NewCoverageCollector initializes a CoverageCollector with the specified
@@ -38,15 +39,17 @@ func NewCoverageCollector(mergedCoverageFilename string, collectCoverage bool) *
 	return &CoverageCollector{
 		MergedCoverageFilename: mergedCoverageFilename,
 		CollectCoverage:        collectCoverage,
+		tmpArgsFilePrefix:      defaultTmpArgsFilePrefix,
+		tmpCoverageFilePrefix:  defaultTmpCoverageFilePrefix,
 	}
 }
 
 func (c *CoverageCollector) Setup() error {
-	if c.MergedCoverageFilename == "" {
-		return errors.New("merged coverage profile filename cannot be empty")
+	if c.MergedCoverageFilename == "" && c.CollectCoverage {
+		return errors.New("merged coverage profile filename cannot be empty when CollectCoverage is true")
 	}
 	var err error
-	c.tmpArgsFile, err = ioutil.TempFile("", tmpArgsFilePrefix)
+	c.tmpArgsFile, err = ioutil.TempFile("", c.tmpArgsFilePrefix)
 	if err != nil {
 		return errors.Wrap(err, "error creating temporary args file")
 	}
@@ -55,15 +58,16 @@ func (c *CoverageCollector) Setup() error {
 }
 
 // TearDown merges the coverage profiles collecting from repeated runs of RunBinary.
-// It must be called at the teardown stage of the test suite, otherwise no merged coverage profile will be created. 
+// It must be called at the teardown stage of the test suite, otherwise no merged coverage profile will be created.
 func (c *CoverageCollector) TearDown() error {
-	if c.testNum == 0 {
+	if len(c.tmpCoverageFiles) == 0 {
 		return nil
 	}
+	defer c.removeTempFiles()
 	header := fmt.Sprintf("mode: %s", c.coverMode)
 	var parsedProfiles []string
-	for _, filename := range c.tmpCoverageFilenames {
-		buf, err := ioutil.ReadFile(filename)
+	for _, file := range c.tmpCoverageFiles {
+		buf, err := ioutil.ReadAll(file)
 		if err != nil {
 			return errors.Wrap(err, "error reading temp coverage profiles")
 		}
@@ -83,7 +87,7 @@ func (c *CoverageCollector) TearDown() error {
 	return nil
 }
 
-// RunBinary runs the instrumented binary at binPath with env environment variables, executing only the test with mainTestName with the specified args.  
+// RunBinary runs the instrumented binary at binPath with env environment variables, executing only the test with mainTestName with the specified args.
 func (c *CoverageCollector) RunBinary(binPath string, mainTestName string, env []string, args []string) (output string, exitCode int, err error) {
 	if !c.setupFinished {
 		panic("RunBinary called before Setup")
@@ -94,36 +98,31 @@ func (c *CoverageCollector) RunBinary(binPath string, mainTestName string, env [
 	}
 	var binArgs string
 	if c.CollectCoverage {
-		f, err := ioutil.TempFile("", tmpCoverageFilePrefix)
+		f, err := ioutil.TempFile("", c.tmpCoverageFilePrefix)
 		if err != nil {
 			return "", -1, err
 		}
-		c.tmpCoverageFilenames = append(c.tmpCoverageFilenames, f.Name())
+		c.tmpCoverageFiles = append(c.tmpCoverageFiles, f)
 		binArgs = fmt.Sprintf("-test.run=%s -test.coverprofile=%s -args-file=%s", mainTestName, f.Name(), c.tmpArgsFile.Name())
 	} else {
 		binArgs = fmt.Sprintf("-test.run=%s -args-file=%s", mainTestName, c.tmpArgsFile.Name())
 	}
-	_, _ = fmt.Println(binPath, args)
 	cmd := exec.Command(binPath, strings.Split(binArgs, " ")...)
 	cmd.Env = append(os.Environ(), env...)
 	combinedOutput, err := cmd.CombinedOutput()
+	binOutput := string(combinedOutput)
 	if err != nil {
 		// This exit code testing requires 1.12 - https://stackoverflow.com/a/55055100/337735.
 		if exitError, ok := err.(*exec.ExitError); ok {
 			binExitCode := exitError.ExitCode()
-			if binExitCode != 0 {
-				format := "unexpected error occurred in RunTest: %s\nRunTest exit code: %d\nRunTest output:\n%s\n"
-				log.Panicf(format, err, binExitCode, string(combinedOutput))
-			}
+			format := "unexpected error running command \"%s\": %s\nExit code: %d\nOutput:\n%s\n"
+			log.Panicf(format, binPath, err, binExitCode, binOutput)
 		} else {
-			format := "unexpected error retrieving RunTest exit code\nRunTest exit error: %s\nRunTest output:\n%s\n"
-			log.Panicf(format, err, string(combinedOutput))
+			format := "unexpected error running command \"%s\": %s\n"
+			log.Panicf(format, binPath, err)
 		}
 	}
-	cmdOutput, coverMode, exitCode, err := parseCommandOutput(string(combinedOutput))
-	if err != nil {
-		return "", -1, errors.Wrap(err, "error parsing instrumented binary output")
-	}
+	cmdOutput, coverMode, exitCode := parseCommandOutput(string(combinedOutput))
 	if c.CollectCoverage {
 		if c.coverMode == "" {
 			c.coverMode = coverMode
@@ -133,12 +132,11 @@ func (c *CoverageCollector) RunBinary(binPath string, mainTestName string, env [
 		}
 		// https://github.com/wadey/gocovmerge/blob/b5bfa59ec0adc420475f97f89b58045c721d761c/gocovmerge.go#L18
 		if c.coverMode != coverMode {
-			panic("cannot merge profiles with different modes")
+			panic("cannot merge profiles with different coverage modes")
 		}
 		if c.coverMode != set && c.coverMode != count && c.coverMode != atomic {
 			log.Panicf("unexpected coverage mode \"%s\" encountered. Coverage mode must be set, count, or atomic", c.coverMode)
 		}
-		c.testNum++
 	}
 	return cmdOutput, exitCode, err
 }
@@ -160,7 +158,7 @@ func (c *CoverageCollector) writeArgs(args []string) error {
 	return err
 }
 
-func parseCommandOutput(output string) (cmdOutput string, coverMode string, exitCode int, err error) {
+func parseCommandOutput(output string) (cmdOutput string, coverMode string, exitCode int) {
 	startIndex := strings.Index(output, startOfMetadataMarker)
 	if startIndex == -1 {
 		panic("metadata start marker is unexpectedly missing")
@@ -174,9 +172,24 @@ func parseCommandOutput(output string) (cmdOutput string, coverMode string, exit
 	// Trim extra newline after cmd output.
 	metadataStr := strings.TrimSpace(tail)
 	var metadata testMetadata
-	err = json.Unmarshal([]byte(metadataStr), &metadata)
+	err := json.Unmarshal([]byte(metadataStr), &metadata)
 	if err != nil {
-		return "", "", -1, err
+		panic("error unmarshalling testMetadata struct from RunTest")
 	}
-	return cmdOutput, metadata.CoverMode, metadata.ExitCode, nil
+	return cmdOutput, metadata.CoverMode, metadata.ExitCode
+}
+
+func (c *CoverageCollector) removeTempFiles() {
+	for _, file := range c.tmpCoverageFiles {
+		err := os.Remove(file.Name())
+		if err != nil {
+			log.Printf("error removing temp coverage file: %s\n", err)
+		}
+	}
+	if c.tmpArgsFile != nil {
+		err := os.Remove(c.tmpArgsFile.Name())
+		if err != nil {
+			log.Printf("error removing temp arg file: %s\n", err)
+		}
+	}
 }

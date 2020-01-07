@@ -6,11 +6,28 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"os/exec"
 	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 )
+
+func TestMain(m *testing.M) {
+	// Build necessary binaries before executing unit tests.
+	buildTestCmd := exec.Command("go", []string{"test", "./test_bin", "-tags", "testrunmain", "-coverpkg=./...", "-c", "-o", "set_covermode"}...)
+	output, err := buildTestCmd.CombinedOutput()
+	if err != nil {
+		log.Println(output)
+		panic(err)
+	}
+	exitCode := m.Run()
+	err = os.Remove("set_covermode")
+	if err != nil {
+		panic(err)
+	}
+	os.Exit(exitCode)
+}
 
 func TestCoverageCollector_Setup(t *testing.T) {
 	type fields struct {
@@ -426,9 +443,9 @@ func TestCoverageCollector_RunBinary(t *testing.T) {
 		{
 			name:         "fail if error exists and is an ExitError when executing command at 'binPath'",
 			wantPanic:    true,
-			panicMessage: "unexpected error running command \"cat\": exit status 1\nExit code: 1\nOutput:\ncat: illegal option -- .\nusage: cat [-benstuv] [file ...]\n\n",
+			panicMessage: "unexpected error running command \"./test_bin/exit_1.sh\": exit status 1\nExit code: 1\nOutput:\nHello world\n\n",
 			args: args{
-				binPath:      "cat",
+				binPath:      "./test_bin/exit_1.sh",
 				mainTestName: "",
 				env:          nil,
 				args:         nil,
@@ -438,8 +455,8 @@ func TestCoverageCollector_RunBinary(t *testing.T) {
 		{
 			name: "succeed running binary when coverage is disabled",
 			args: args{
-				binPath:      "./input_bin/exit_code_1",
-				mainTestName: "TestRunMain",
+				binPath:      "./set_covermode",
+				mainTestName: "",
 				env:          nil,
 				args:         nil,
 			},
@@ -447,15 +464,15 @@ func TestCoverageCollector_RunBinary(t *testing.T) {
 				MergedCoverageFilename: "",
 				CollectCoverage:        false,
 			},
-			wantOutput:   "Hello world!\n",
+			wantOutput:   "Hello world\n",
 			wantExitCode: 1,
 			callSetup:    true,
 		},
 		{
 			name: "succeed running binary when coverage is enabled",
 			args: args{
-				binPath:      "./input_bin/exit_code_1",
-				mainTestName: "TestRunMain",
+				binPath:      "./set_covermode",
+				mainTestName: "",
 				env:          nil,
 				args:         nil,
 			},
@@ -463,14 +480,14 @@ func TestCoverageCollector_RunBinary(t *testing.T) {
 				MergedCoverageFilename: "temp_coverage.txt",
 				CollectCoverage:        true,
 			},
-			wantOutput:   "Hello world!\n",
+			wantOutput:   "Hello world\n",
 			wantExitCode: 1,
 			callSetup:    true,
 		},
 		{
 			name: "panic running binary which outputs empty coverage mode",
 			args: args{
-				binPath:      "./input_bin/empty_covermode.sh",
+				binPath:      "./test_bin/empty_covermode.sh",
 				mainTestName: "",
 				env:          nil,
 				args:         nil,
@@ -486,7 +503,7 @@ func TestCoverageCollector_RunBinary(t *testing.T) {
 		{
 			name: "panic running binary which outputs different coverage mode",
 			args: args{
-				binPath:      "./input_bin/exit_code_1",
+				binPath:      "./set_covermode",
 				mainTestName: "TestRunMain",
 				env:          nil,
 				args:         nil,
@@ -503,7 +520,7 @@ func TestCoverageCollector_RunBinary(t *testing.T) {
 		{
 			name: "panic running binary which outputs unexpected coverage mode",
 			args: args{
-				binPath:      "./input_bin/unexpected_covermode.sh",
+				binPath:      "./test_bin/unexpected_covermode.sh",
 				mainTestName: "",
 				env:          nil,
 				args:         nil,

@@ -1,4 +1,4 @@
-package input_bin
+package test_bin
 
 import (
 	"fmt"
@@ -7,6 +7,6 @@ import (
 )
 
 func main() {
-	fmt.Println("Hello world!")
+	fmt.Println("Hello world")
 	bincover.ExitCode = 1
 }

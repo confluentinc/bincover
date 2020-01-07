@@ -9,7 +9,7 @@ fmt:
 
 .PHONY: lint-go
 lint-go:
-	@GO111MODULE=on golangci-lint run --timeout=10m --skip-files="input_bin/exit_code_1.go"
+	@GO111MODULE=on golangci-lint run --timeout=10m --skip-files="test_bin/set_covermode.go"
 
 .PHONY: lint
 lint: lint-go 

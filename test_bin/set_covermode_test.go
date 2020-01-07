@@ -1,6 +1,6 @@
 // +build testrunmain
 
-package input_bin
+package test_bin
 
 import (
 	"testing"

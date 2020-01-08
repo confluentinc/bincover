@@ -70,7 +70,8 @@ func (c *CoverageCollector) TearDown() error {
 		profile := string(buf)
 		loc := strings.Index(profile, header)
 		if loc == -1 {
-			panic("unexpected missing coverage mode from coverage profile")
+			errMessage := "error parsing coverage profile: missing coverage mode from coverage profile. Maybe the file got corrupted while writing?"
+			return errors.New(errMessage)
 		}
 		parsedProfile := strings.TrimSpace(profile[loc+len(header):])
 		parsedProfiles = append(parsedProfiles, parsedProfile)
@@ -111,11 +112,11 @@ func (c *CoverageCollector) RunBinary(binPath string, mainTestName string, env [
 		// This exit code testing requires 1.12 - https://stackoverflow.com/a/55055100/337735.
 		if exitError, ok := err.(*exec.ExitError); ok {
 			binExitCode := exitError.ExitCode()
-			format := "unexpected error running command \"%s\": %s\nExit code: %d\nOutput:\n%s\n"
-			log.Panicf(format, binPath, err, binExitCode, binOutput)
+			format := "error running command \"%s\"\nExit code: %d\nOutput:\n%s\n"
+			return "", -1, errors.Wrapf(err, format, binPath, binExitCode, binOutput)
 		} else {
-			format := "unexpected error running command \"%s\": %s\n"
-			log.Panicf(format, binPath, err)
+			format := "unexpected error running command \"%s\"\n"
+			return "", -1, errors.Wrapf(err, format, binPath)
 		}
 	}
 	cmdOutput, coverMode, exitCode := parseCommandOutput(string(combinedOutput))

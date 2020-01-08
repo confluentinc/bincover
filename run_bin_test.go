@@ -2,7 +2,6 @@ package bincover
 
 import (
 	"bytes"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -37,10 +36,10 @@ func TestCoverageCollector_Setup(t *testing.T) {
 		tmpArgsFilePrefix      string
 	}
 	tests := []struct {
-		name         string
-		fields       fields
-		wantErr      bool
-		errorMessage string
+		name       string
+		fields     fields
+		wantErr    bool
+		errMessage string
 	}{
 		{
 			name: "succeed setting up",
@@ -60,8 +59,8 @@ func TestCoverageCollector_Setup(t *testing.T) {
 				setupFinished:          false,
 				tmpArgsFilePrefix:      defaultTmpArgsFilePrefix,
 			},
-			wantErr:      true,
-			errorMessage: "merged coverage profile filename cannot be empty when CollectCoverage is true",
+			wantErr:    true,
+			errMessage: "merged coverage profile filename cannot be empty when CollectCoverage is true",
 		},
 	}
 	for _, tt := range tests {
@@ -72,8 +71,8 @@ func TestCoverageCollector_Setup(t *testing.T) {
 			}
 			if err := c.Setup(); (err != nil) != tt.wantErr {
 				t.Errorf("Setup() error = %v, wantErr %v", err, tt.wantErr)
-			} else if tt.wantErr && tt.errorMessage != "" {
-				require.EqualError(t, err, tt.errorMessage)
+			} else if tt.wantErr && tt.errMessage != "" {
+				require.EqualError(t, err, tt.errMessage)
 			}
 			require.Equal(t, tt.fields.setupFinished, c.setupFinished)
 		})
@@ -88,13 +87,14 @@ func TestCoverageCollector_TearDown(t *testing.T) {
 		tmpCoverageFiles       []*os.File
 	}
 	tests := []struct {
-		name                 string
-		fields               fields
-		wantErr              bool
-		wantPanic            bool
-		panicMessage         string
-		errorMessageContains string
-		mergedFileContents   string
+		name               string
+		fields             fields
+		wantErr            bool
+		wantPanic          bool
+		panicMessage       string
+		errMessageContains string
+		errMessage         string
+		mergedFileContents string
 	}{
 		{
 			name:    "succeed tearing down with no tests",
@@ -118,7 +118,7 @@ func TestCoverageCollector_TearDown(t *testing.T) {
 			wantErr:            false,
 		},
 		{
-			name: "panic tearing down with missing coverage mode",
+			name: "fail tearing down with missing coverage mode",
 			fields: fields{
 				MergedCoverageFilename: "temp_merged.txt",
 				CollectCoverage:        true,
@@ -128,8 +128,8 @@ func TestCoverageCollector_TearDown(t *testing.T) {
 					return []*os.File{f1, missingHeaderFile}
 				}(),
 			},
-			wantPanic:    true,
-			panicMessage: "unexpected missing coverage mode from coverage profile",
+			wantErr:    true,
+			errMessage: "error parsing coverage profile: missing coverage mode from coverage profile. Maybe the file got corrupted while writing?",
 		},
 		{
 			name: "fail tearing down with missing temp coverage profiles",
@@ -142,8 +142,8 @@ func TestCoverageCollector_TearDown(t *testing.T) {
 					return []*os.File{f}
 				}(),
 			},
-			wantErr:              true,
-			errorMessageContains: "error reading temp coverage profiles",
+			wantErr:            true,
+			errMessageContains: "error reading temp coverage profiles",
 		},
 		{
 			name: "fail tearing down with invalid merged coverage filename",
@@ -157,8 +157,8 @@ func TestCoverageCollector_TearDown(t *testing.T) {
 					return []*os.File{f1, f2, f3}
 				}(),
 			},
-			wantErr:              true,
-			errorMessageContains: "error writing merged coverage profile",
+			wantErr:            true,
+			errMessageContains: "error writing merged coverage profile",
 		},
 	}
 	for _, tt := range tests {
@@ -175,9 +175,10 @@ func TestCoverageCollector_TearDown(t *testing.T) {
 			}
 			if err := c.TearDown(); (err != nil) != tt.wantErr {
 				t.Errorf("TearDown() error = %v, wantErr %v", err, tt.wantErr)
-			} else if err != nil && tt.errorMessageContains != "" {
-				fmt.Println(err)
-				require.Contains(t, err.Error(), tt.errorMessageContains)
+			} else if err != nil && tt.errMessageContains != "" {
+				require.Contains(t, err.Error(), tt.errMessageContains)
+			} else if err != nil && tt.errMessage != "" {
+				require.EqualError(t, err, tt.errMessage)
 			}
 			if c.MergedCoverageFilename != "" && !tt.wantErr {
 				defer os.Remove(c.MergedCoverageFilename)
@@ -412,6 +413,7 @@ func TestCoverageCollector_RunBinary(t *testing.T) {
 		wantOutput   string
 		wantExitCode int
 		wantErr      bool
+		errMessage   string
 		wantPanic    bool
 		panicMessage string
 		callSetup    bool
@@ -422,28 +424,30 @@ func TestCoverageCollector_RunBinary(t *testing.T) {
 			panicMessage: "RunBinary called before Setup",
 		},
 		{
-			name:         "fail if error exists and is not an ExitError when executing command at 'binPath'",
-			wantPanic:    true,
-			panicMessage: "unexpected error running command \"invalid.exec\": exec: \"invalid.exec\": executable file not found in $PATH\n",
+			name:       "fail if error exists and is not an ExitError when executing command at 'binPath'",
+			wantErr:    true,
+			errMessage: "exec: \"invalid.exec\": executable file not found in $PATH\"invalid.exec\": unexpected error running command \"invalid.exec\"\n",
 			args: args{
 				binPath:      "invalid.exec",
 				mainTestName: "",
 				env:          nil,
 				args:         nil,
 			},
-			callSetup: true,
+			callSetup:    true,
+			wantExitCode: -1,
 		},
 		{
-			name:         "fail if error exists and is an ExitError when executing command at 'binPath'",
-			wantPanic:    true,
-			panicMessage: "unexpected error running command \"./test_bin/exit_1.sh\": exit status 1\nExit code: 1\nOutput:\nHello world\n\n",
+			name:       "fail if error exists and is an ExitError when executing command at 'binPath'",
+			wantErr:    true,
+			errMessage: "exit status 1: unexpected error running command \"./test_bin/exit_1.sh\"\nExit code: 1\nOutput:\nHello world\n\n",
 			args: args{
 				binPath:      "./test_bin/exit_1.sh",
 				mainTestName: "",
 				env:          nil,
 				args:         nil,
 			},
-			callSetup: true,
+			callSetup:    true,
+			wantExitCode: -1,
 		},
 		{
 			name: "succeed running binary when coverage is disabled",

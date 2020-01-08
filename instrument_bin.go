@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"strings"
 	"testing"
@@ -46,7 +45,7 @@ func printMetadata(metadata *testMetadata) {
 	fmt.Println(startOfMetadataMarker)
 	b, err := json.Marshal(metadata)
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 	fmt.Println(string(b))
 	fmt.Println(endOfMetadataMarker)
@@ -58,16 +57,12 @@ func printMetadata(metadata *testMetadata) {
 // 2. startOfMetadataMarker
 // 3. a testMetadata struct
 // 4. endOfMetadataMarker
-// It then exits with an exit code of 0.
 //
-// Otherwise, if an unexpected error is encountered during execution, 
-// RunTest prints an error, possibly some additional output, and then exits with an exit code of 1.
+// Otherwise, if an unexpected error is encountered during execution, RunTest panics.
 func RunTest(f func()) {
 	if !flag.Parsed() {
 		flag.Parse()
 	}
-	metadata := new(testMetadata)
-	defer printMetadata(metadata)
 	var parsedArgs []string
 	for _, arg := range os.Args {
 		if !strings.HasPrefix(arg, "-test.") && !strings.HasPrefix(arg, "-args-file") {
@@ -77,12 +72,15 @@ func RunTest(f func()) {
 	if len(*argsFilename) > 0 {
 		customArgs, err := parseCustomArgs()
 		if err != nil {
-			log.Fatal(err)
+			panic(err)
 		}
 		parsedArgs = append(parsedArgs, customArgs...)
 	}
 	os.Args = parsedArgs
 	f()
-	metadata.CoverMode = testing.CoverMode()
-	metadata.ExitCode = ExitCode
+	metadata := &testMetadata{
+		CoverMode: testing.CoverMode(),
+		ExitCode:  ExitCode,
+	}
+	printMetadata(metadata)
 }

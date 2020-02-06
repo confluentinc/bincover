@@ -15,12 +15,13 @@ func TestRunTest(t *testing.T) {
 		f func()
 	}
 	tests := []struct {
-		name       string
-		args       args
-		argsFile   *os.File
-		wantOutput string
-		wantArgs   []string
-		wantPanic  bool
+		name              string
+		args              args
+		argsFile          *os.File
+		wantOutput        string
+		wantArgs          []string
+		wantPanic         bool
+		wantOutputPattern string
 	}{
 		{
 			name: "succeed running test",
@@ -47,6 +48,18 @@ func TestRunTest(t *testing.T) {
 			wantArgs:  []string{},
 			wantPanic: true,
 		},
+		{
+			name: "succeed running panicking binary",
+			args: args{f: func() {
+				panic("I am Beyonce, always")
+			}},
+			argsFile: func() *os.File {
+				return tempFile(t)
+			}(),
+			wantOutputPattern: "panic: I am Beyonce, always\ngoroutine [\\d]+[\\s\\S]+" +
+				startOfMetadataMarker + "\n{\"cover_mode\":\"" + testing.CoverMode() + "\",\"exit_code\":1}\n" + endOfMetadataMarker + "\n",
+			wantArgs: []string{},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -72,7 +85,11 @@ func TestRunTest(t *testing.T) {
 			require.NoError(t, err)
 			buf, err := ioutil.ReadAll(tempStdout)
 			require.NoError(t, err)
-			require.Equal(t, tt.wantOutput, string(buf))
+			if tt.wantOutputPattern != "" {
+				require.Regexp(t, tt.wantOutputPattern, string(buf))
+			} else {
+				require.Equal(t, tt.wantOutput, string(buf))
+			}
 			require.Equal(t, tt.wantArgs, os.Args[len(os.Args)-len(tt.wantArgs):])
 		})
 	}

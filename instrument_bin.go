@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"runtime/debug"
 	"strings"
 	"testing"
 )
@@ -77,10 +78,17 @@ func RunTest(f func()) {
 		parsedArgs = append(parsedArgs, customArgs...)
 	}
 	os.Args = parsedArgs
+	// Catch panicking binaries.
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Printf("panic: %s\n%s", r, debug.Stack())
+			ExitCode = 1
+		}
+		metadata := &testMetadata{
+			CoverMode: testing.CoverMode(),
+			ExitCode:  ExitCode,
+		}
+		printMetadata(metadata)
+	}()
 	f()
-	metadata := &testMetadata{
-		CoverMode: testing.CoverMode(),
-		ExitCode:  ExitCode,
-	}
-	printMetadata(metadata)
 }

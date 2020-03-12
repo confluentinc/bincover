@@ -1,0 +1,5 @@
+1. Build instrumented test bin:
+
+go test ./examples/echo-arg/... -tags testbincover -coverpkg=./... -c -o examples/echo-arg/instr_bin -ldflags="-X github.com/confluentinc/bincover/examples/echo-arg.isTest=true"
+
+

@@ -94,12 +94,12 @@ func (c *CoverageCollector) RunBinary(binPath string, mainTestName string, env [
 		return "", -1, err
 	}
 	var binArgs string
+	var tempCovFile *os.File
 	if c.CollectCoverage {
-		tempCovFile, err := ioutil.TempFile("", defaultTmpCoverageFilePrefix)
+		tempCovFile, err = ioutil.TempFile("", defaultTmpCoverageFilePrefix)
 		if err != nil {
 			return "", -1, err
 		}
-		c.tmpCoverageFiles = append(c.tmpCoverageFiles, tempCovFile)
 		binArgs = fmt.Sprintf("-test.run=%s -test.coverprofile=%s -args-file=%s", mainTestName, tempCovFile.Name(), c.tmpArgsFile.Name())
 	} else {
 		binArgs = fmt.Sprintf("-test.run=%s -args-file=%s", mainTestName, c.tmpArgsFile.Name())
@@ -109,6 +109,9 @@ func (c *CoverageCollector) RunBinary(binPath string, mainTestName string, env [
 	combinedOutput, err := cmd.CombinedOutput()
 	binOutput := string(combinedOutput)
 	if err != nil {
+		if tempCovFile != nil {
+			removeTempCoverageFile(tempCovFile.Name())
+		}
 		// This exit code testing requires 1.12 - https://stackoverflow.com/a/55055100/337735.
 		if exitError, ok := err.(*exec.ExitError); ok {
 			binExitCode := exitError.ExitCode()
@@ -118,6 +121,9 @@ func (c *CoverageCollector) RunBinary(binPath string, mainTestName string, env [
 			format := "unexpected error running command \"%s\"\n"
 			return "", -1, errors.Wrapf(err, format, binPath)
 		}
+	}
+	if tempCovFile != nil {
+		c.tmpCoverageFiles = append(c.tmpCoverageFiles, tempCovFile)
 	}
 	cmdOutput, coverMode, exitCode := parseCommandOutput(string(combinedOutput))
 	if c.CollectCoverage {
@@ -178,15 +184,19 @@ func parseCommandOutput(output string) (cmdOutput string, coverMode string, exit
 
 func (c *CoverageCollector) removeTempFiles() {
 	for _, file := range c.tmpCoverageFiles {
-		err := os.Remove(file.Name())
-		if err != nil {
-			log.Printf("error removing temp coverage file: %s\n", err)
-		}
+		removeTempCoverageFile(file.Name())
 	}
 	if c.tmpArgsFile != nil {
 		err := os.Remove(c.tmpArgsFile.Name())
 		if err != nil {
 			log.Printf("error removing temp arg file: %s\n", err)
 		}
+	}
+}
+
+func removeTempCoverageFile(name string) {
+	err := os.Remove(name)
+	if err != nil {
+		log.Printf("error removing temp coverage file: %s\n", err)
 	}
 }

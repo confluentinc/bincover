@@ -1,4 +1,4 @@
-package test_bin
+package main
 
 import (
 	"fmt"

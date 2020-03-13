@@ -8,6 +8,6 @@ import (
 	"github.com/confluentinc/bincover"
 )
 
-func TestBincover(t *testing.T) {
+func TestBincoverRunMain(t *testing.T) {
 	bincover.RunTest(main)
 }

@@ -122,6 +122,10 @@ func (c *CoverageCollector) RunBinary(binPath string, mainTestName string, env [
 			return "", -1, errors.Wrapf(err, format, binPath)
 		}
 	}
+	haveTestsToRun := haveTestsToRun(binOutput)
+	if !haveTestsToRun {
+		return "", -1, errors.New(binOutput)
+	}
 	if tempCovFile != nil {
 		c.tmpCoverageFiles = append(c.tmpCoverageFiles, tempCovFile)
 	}
@@ -199,4 +203,9 @@ func removeTempCoverageFile(name string) {
 	if err != nil {
 		log.Printf("error removing temp coverage file: %s\n", err)
 	}
+}
+
+func haveTestsToRun(output string) bool {
+	prefix := "testing: warning: no tests to run"
+	return !strings.HasPrefix(output, prefix)
 }

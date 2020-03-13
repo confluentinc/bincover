@@ -21,7 +21,7 @@ func TestMainMethod(t *testing.T) {
 	dir, err := os.Getwd()
 	require.NoError(t, err)
 	binPath = path.Join(dir, "instr_bin")
-	collector = bincover.NewCoverageCollector("echo_arg_coverage.txt", true)
+	collector = bincover.NewCoverageCollector("echo_arg_coverage.out", true)
 	err = collector.Setup()
 	defer func() {
 		err := collector.TearDown()
@@ -59,7 +59,7 @@ func TestMainMethod(t *testing.T) {
 	}
 	for _, tt := range tests {
 		fmt.Println(tt.name)
-		output, exitCode, err := collector.RunBinary(binPath, "TestBincover", []string{}, tt.args)
+		output, exitCode, err := collector.RunBinary(binPath, "TestBincoverRunMain", []string{}, tt.args)
 		require.NoError(t, err)
 		if tt.outputPattern != nil {
 			require.Regexp(t, tt.outputPattern, output)

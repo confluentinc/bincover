@@ -13,6 +13,3 @@
 
 # GoLand files
 .idea/
-
-# Coverage file
-coverage.txt

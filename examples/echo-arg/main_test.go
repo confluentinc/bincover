@@ -23,13 +23,13 @@ func TestMainMethod(t *testing.T) {
 	binPath = path.Join(dir, "instr_bin")
 	collector = bincover.NewCoverageCollector("echo_arg_coverage.out", true)
 	err = collector.Setup()
+	require.NoError(t, err)
 	defer func() {
 		err := collector.TearDown()
 		if err != nil {
 			panic(err)
 		}
 	}()
-	require.NoError(t, err)
 	tests := []struct {
 		name          string
 		args          []string

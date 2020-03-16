@@ -100,9 +100,9 @@ func (c *CoverageCollector) RunBinary(binPath string, mainTestName string, env [
 		if err != nil {
 			return "", -1, err
 		}
-		binArgs = fmt.Sprintf("-test.run=%s -test.coverprofile=%s -args-file=%s", mainTestName, tempCovFile.Name(), c.tmpArgsFile.Name())
+		binArgs = fmt.Sprintf("-test.run=^%s$ -test.coverprofile=%s -args-file=%s", mainTestName, tempCovFile.Name(), c.tmpArgsFile.Name())
 	} else {
-		binArgs = fmt.Sprintf("-test.run=%s -args-file=%s", mainTestName, c.tmpArgsFile.Name())
+		binArgs = fmt.Sprintf("-test.run=^%s$ -args-file=%s", mainTestName, c.tmpArgsFile.Name())
 	}
 	cmd := exec.Command(binPath, strings.Split(binArgs, " ")...)
 	cmd.Env = append(os.Environ(), env...)

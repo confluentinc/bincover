@@ -21,8 +21,8 @@ lint-go:
 .PHONY: lint
 lint: lint-go 
 
-.PHONY: coverage
-coverage:
+.PHONY: test-go
+test-go:
 ifdef CI
 	@# Run unit tests with coverage.
 	@GO111MODULE=on go test .  -coverpkg=./...  -coverprofile=coverage.txt
@@ -31,4 +31,4 @@ else
 endif
 
 .PHONY: test
-test: lint coverage
+test: lint test-go

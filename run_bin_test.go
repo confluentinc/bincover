@@ -351,15 +351,17 @@ func TestCoverageCollector_writeArgs(t *testing.T) {
 		wantErr            bool
 		wantArgFileContent string
 	}{
-		//{
-		//	name: "fail when writing args to nonexistent file",
-		//	fields: fields{
-		//		tmpArgsFile: func() *os.File {
-		//			return removedTempFile(t)
-		//		}(),
-		//	},
-		//	wantErr: true,
-		//},
+		{
+			name: "fail when writing args to closed file",
+			fields: fields{
+				tmpArgsFile: func() *os.File {
+					f := tempFile(t)
+					require.NoError(t, f.Close())
+					return f
+				}(),
+			},
+			wantErr: true,
+		},
 		{
 			name: "succeed writing args",
 			fields: fields{

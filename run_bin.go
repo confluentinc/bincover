@@ -85,7 +85,6 @@ func (c *CoverageCollector) TearDown() error {
 }
 
 // RunBinary runs the instrumented binary at binPath with env environment variables, executing only the test with mainTestName with the specified args.
-// Returns exit code -1 if error is non-nil.
 func (c *CoverageCollector) RunBinary(binPath string, mainTestName string, env []string, args []string) (output string, exitCode int, err error) {
 	if !c.setupFinished {
 		panic("RunBinary called before Setup")

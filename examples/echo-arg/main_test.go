@@ -2,8 +2,9 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
-	"path"
+	"os/exec"
 	"regexp"
 	"testing"
 
@@ -12,20 +13,23 @@ import (
 	"github.com/confluentinc/bincover"
 )
 
-var (
-	collector *bincover.CoverageCollector
-	binPath   string
-)
-
 func TestMainMethod(t *testing.T) {
-	dir, err := os.Getwd()
-	require.NoError(t, err)
-	binPath = path.Join(dir, "instr_bin")
-	collector = bincover.NewCoverageCollector("echo_arg_coverage.out", true)
+	const binPath = "./instr_bin"
+	buildTestCmd := exec.Command("./build_instr_bin.sh")
+	output, err := buildTestCmd.CombinedOutput()
+	if err != nil {
+		log.Println(output)
+		panic(err)
+	}
+	collector := bincover.NewCoverageCollector("echo_arg_coverage.out", true)
 	err = collector.Setup()
 	require.NoError(t, err)
 	defer func() {
 		err := collector.TearDown()
+		if err != nil {
+			panic(err)
+		}
+		err = os.Remove(binPath)
 		if err != nil {
 			panic(err)
 		}
@@ -40,7 +44,7 @@ func TestMainMethod(t *testing.T) {
 		{
 			name:         "succeed running main with one arg",
 			args:         []string{"hello"},
-			wantOutput:   `Your argument is "hello"\n`,
+			wantOutput:   "Your argument is \"hello\"\n",
 			wantExitCode: 0,
 		},
 		{

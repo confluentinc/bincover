@@ -18,7 +18,7 @@ var (
 
 const (
 	startOfMetadataMarker = "START_BINCOVER_METADATA"
-	endOfMetadataMarker   = "END_BINVCOVER_METADATA"
+	endOfMetadataMarker   = "END_BINCOVER_METADATA"
 )
 
 func parseCustomArgs() ([]string, error) {

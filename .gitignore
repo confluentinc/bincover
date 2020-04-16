@@ -13,3 +13,6 @@
 
 # GoLand files
 .idea/
+
+# Example instrumented binary
+examples/echo-arg/instr_bin

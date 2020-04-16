@@ -44,7 +44,7 @@ func TestCoverageCollector_Setup(t *testing.T) {
 		{
 			name: "succeed setting up",
 			fields: fields{
-				MergedCoverageFilename: "test-file.txt",
+				MergedCoverageFilename: "test-file.out",
 				CollectCoverage:        false,
 				setupFinished:          true,
 				tmpArgsFilePrefix:      defaultTmpArgsFilePrefix,
@@ -104,7 +104,7 @@ func TestCoverageCollector_TearDown(t *testing.T) {
 		{
 			name: "succeed tearing down with tests",
 			fields: fields{
-				MergedCoverageFilename: "temp_merged.txt",
+				MergedCoverageFilename: "temp_merged.out",
 				CollectCoverage:        true,
 				tmpCoverageFiles: func() []*os.File {
 					f1 := tempFileWithContent(t, "mode: set\nfirst file\n")
@@ -120,7 +120,7 @@ func TestCoverageCollector_TearDown(t *testing.T) {
 		{
 			name: "fail tearing down with missing coverage mode",
 			fields: fields{
-				MergedCoverageFilename: "temp_merged.txt",
+				MergedCoverageFilename: "temp_merged.out",
 				CollectCoverage:        true,
 				tmpCoverageFiles: func() []*os.File {
 					f1 := tempFileWithContent(t, "mode: set\nfirst file\n")
@@ -134,7 +134,7 @@ func TestCoverageCollector_TearDown(t *testing.T) {
 		{
 			name: "fail tearing down with missing temp coverage profiles",
 			fields: fields{
-				MergedCoverageFilename: "temp_merged.txt",
+				MergedCoverageFilename: "temp_merged.out",
 				CollectCoverage:        true,
 				tmpCoverageFiles: func() []*os.File {
 					f := tempFile(t)
@@ -453,7 +453,7 @@ func TestCoverageCollector_RunBinary(t *testing.T) {
 			name: "succeed running binary when coverage is disabled",
 			args: args{
 				binPath:      "./set_covermode",
-				mainTestName: "",
+				mainTestName: "TestRunMain",
 				env:          nil,
 				args:         nil,
 			},
@@ -469,12 +469,12 @@ func TestCoverageCollector_RunBinary(t *testing.T) {
 			name: "succeed running binary when coverage is enabled",
 			args: args{
 				binPath:      "./set_covermode",
-				mainTestName: "",
+				mainTestName: "TestRunMain",
 				env:          nil,
 				args:         nil,
 			},
 			fields: fields{
-				MergedCoverageFilename: "temp_coverage.txt",
+				MergedCoverageFilename: "temp_coverage.out",
 				CollectCoverage:        true,
 			},
 			wantOutput:   "Hello world\n",
@@ -490,7 +490,7 @@ func TestCoverageCollector_RunBinary(t *testing.T) {
 				args:         nil,
 			},
 			fields: fields{
-				MergedCoverageFilename: "temp_coverage.txt",
+				MergedCoverageFilename: "temp_coverage.out",
 				CollectCoverage:        true,
 			},
 			wantPanic:    true,
@@ -506,7 +506,7 @@ func TestCoverageCollector_RunBinary(t *testing.T) {
 				args:         nil,
 			},
 			fields: fields{
-				MergedCoverageFilename: "temp_coverage.txt",
+				MergedCoverageFilename: "temp_coverage.out",
 				CollectCoverage:        true,
 				coverMode:              "atomic",
 			},
@@ -523,7 +523,7 @@ func TestCoverageCollector_RunBinary(t *testing.T) {
 				args:         nil,
 			},
 			fields: fields{
-				MergedCoverageFilename: "temp_coverage.txt",
+				MergedCoverageFilename: "temp_coverage.out",
 				CollectCoverage:        true,
 			},
 			wantPanic:    true,

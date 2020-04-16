@@ -14,5 +14,5 @@
 # GoLand files
 .idea/
 
-# Coverage file
-coverage.txt
+# Example instrumented binary
+examples/echo-arg/instr_bin

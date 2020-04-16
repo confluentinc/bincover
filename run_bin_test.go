@@ -14,7 +14,7 @@ import (
 
 func TestMain(m *testing.M) {
 	// Build necessary binaries before executing unit tests.
-	buildTestCmd := exec.Command("go", []string{"test", "./test_bin", "-tags", "testrunmain", "-coverpkg=./...", "-c", "-o", "set_covermode"}...)
+	buildTestCmd := exec.Command("go", []string{"test", "./test_bins", "-tags", "testrunmain", "-coverpkg=./...", "-c", "-o", "set_covermode"}...)
 	output, err := buildTestCmd.CombinedOutput()
 	if err != nil {
 		log.Println(output)
@@ -44,7 +44,7 @@ func TestCoverageCollector_Setup(t *testing.T) {
 		{
 			name: "succeed setting up",
 			fields: fields{
-				MergedCoverageFilename: "test-file.txt",
+				MergedCoverageFilename: "test-file.out",
 				CollectCoverage:        false,
 				setupFinished:          true,
 				tmpArgsFilePrefix:      defaultTmpArgsFilePrefix,
@@ -104,7 +104,7 @@ func TestCoverageCollector_TearDown(t *testing.T) {
 		{
 			name: "succeed tearing down with tests",
 			fields: fields{
-				MergedCoverageFilename: "temp_merged.txt",
+				MergedCoverageFilename: "temp_merged.out",
 				CollectCoverage:        true,
 				tmpCoverageFiles: func() []*os.File {
 					f1 := tempFileWithContent(t, "mode: set\nfirst file\n")
@@ -120,7 +120,7 @@ func TestCoverageCollector_TearDown(t *testing.T) {
 		{
 			name: "fail tearing down with missing coverage mode",
 			fields: fields{
-				MergedCoverageFilename: "temp_merged.txt",
+				MergedCoverageFilename: "temp_merged.out",
 				CollectCoverage:        true,
 				tmpCoverageFiles: func() []*os.File {
 					f1 := tempFileWithContent(t, "mode: set\nfirst file\n")
@@ -134,7 +134,7 @@ func TestCoverageCollector_TearDown(t *testing.T) {
 		{
 			name: "fail tearing down with missing temp coverage profiles",
 			fields: fields{
-				MergedCoverageFilename: "temp_merged.txt",
+				MergedCoverageFilename: "temp_merged.out",
 				CollectCoverage:        true,
 				tmpCoverageFiles: func() []*os.File {
 					f := tempFile(t)
@@ -418,44 +418,43 @@ func TestCoverageCollector_RunBinary(t *testing.T) {
 		errMessage   string
 		wantPanic    bool
 		panicMessage string
-		callSetup    bool
+		skipSetup    bool
 	}{
 		{
 			name:         "panic if Setup not called",
 			wantPanic:    true,
 			panicMessage: "RunBinary called before Setup",
+			skipSetup:    true,
 		},
 		{
 			name:       "fail if error exists and is not an ExitError when executing command at 'binPath'",
 			wantErr:    true,
-			errMessage: "exec: \"invalid.exec\": executable file not found in $PATH\"invalid.exec\": unexpected error running command \"invalid.exec\"\n",
+			errMessage: "unexpected error running command \"invalid.exec\": exec: \"invalid.exec\": executable file not found in $PATH",
 			args: args{
 				binPath:      "invalid.exec",
 				mainTestName: "",
 				env:          nil,
 				args:         nil,
 			},
-			callSetup:    true,
 			wantExitCode: -1,
 		},
 		{
 			name:       "fail if error exists and is an ExitError when executing command at 'binPath'",
 			wantErr:    true,
-			errMessage: "exit status 1: unexpected error running command \"./test_bin/exit_1.sh\"\nExit code: 1\nOutput:\nHello world\n\n",
+			errMessage: "unsuccessful exit by command \"./test_bins/exit_1.sh\"\nExit code: 1\nOutput:\nHello world\n: exit status 1",
 			args: args{
-				binPath:      "./test_bin/exit_1.sh",
+				binPath:      "./test_bins/exit_1.sh",
 				mainTestName: "",
 				env:          nil,
 				args:         nil,
 			},
-			callSetup:    true,
-			wantExitCode: -1,
+			wantExitCode: 1,
 		},
 		{
 			name: "succeed running binary when coverage is disabled",
 			args: args{
 				binPath:      "./set_covermode",
-				mainTestName: "",
+				mainTestName: "TestRunMain",
 				env:          nil,
 				args:         nil,
 			},
@@ -465,39 +464,36 @@ func TestCoverageCollector_RunBinary(t *testing.T) {
 			},
 			wantOutput:   "Hello world\n",
 			wantExitCode: 1,
-			callSetup:    true,
 		},
 		{
 			name: "succeed running binary when coverage is enabled",
 			args: args{
 				binPath:      "./set_covermode",
-				mainTestName: "",
+				mainTestName: "TestRunMain",
 				env:          nil,
 				args:         nil,
 			},
 			fields: fields{
-				MergedCoverageFilename: "temp_coverage.txt",
+				MergedCoverageFilename: "temp_coverage.out",
 				CollectCoverage:        true,
 			},
 			wantOutput:   "Hello world\n",
 			wantExitCode: 1,
-			callSetup:    true,
 		},
 		{
 			name: "panic running binary which outputs empty coverage mode",
 			args: args{
-				binPath:      "./test_bin/empty_covermode.sh",
+				binPath:      "./test_bins/empty_covermode.sh",
 				mainTestName: "",
 				env:          nil,
 				args:         nil,
 			},
 			fields: fields{
-				MergedCoverageFilename: "temp_coverage.txt",
+				MergedCoverageFilename: "temp_coverage.out",
 				CollectCoverage:        true,
 			},
 			wantPanic:    true,
 			panicMessage: "coverage mode cannot be empty. test coverage must be enabled when CollectCoverage is set to true",
-			callSetup:    true,
 		},
 		{
 			name: "panic running binary which outputs different coverage mode",
@@ -508,36 +504,46 @@ func TestCoverageCollector_RunBinary(t *testing.T) {
 				args:         nil,
 			},
 			fields: fields{
-				MergedCoverageFilename: "temp_coverage.txt",
+				MergedCoverageFilename: "temp_coverage.out",
 				CollectCoverage:        true,
 				coverMode:              "atomic",
 			},
 			wantPanic:    true,
 			panicMessage: "cannot merge profiles with different coverage modes",
-			callSetup:    true,
 		},
 		{
 			name: "panic running binary which outputs unexpected coverage mode",
 			args: args{
-				binPath:      "./test_bin/unexpected_covermode.sh",
+				binPath:      "./test_bins/unexpected_covermode.sh",
 				mainTestName: "",
 				env:          nil,
 				args:         nil,
 			},
 			fields: fields{
-				MergedCoverageFilename: "temp_coverage.txt",
+				MergedCoverageFilename: "temp_coverage.out",
 				CollectCoverage:        true,
 			},
 			wantPanic:    true,
 			panicMessage: "unexpected coverage mode \"evil\" encountered. Coverage mode must be set, count, or atomic",
-			callSetup:    true,
+		},
+		{
+			name: "fail running binary if there are no tests to run",
+			args: args{
+				binPath:      "./test_bins/no_tests.sh",
+				mainTestName: "",
+				env:          nil,
+				args:         nil,
+			},
+			wantErr:      true,
+			errMessage:   "testing: warning: no tests to run\n",
+			wantExitCode: -1,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := NewCoverageCollector(tt.fields.MergedCoverageFilename, tt.fields.CollectCoverage)
 			c.coverMode = tt.fields.coverMode
-			if tt.callSetup {
+			if !tt.skipSetup {
 				require.NoError(t, c.Setup())
 			}
 			if tt.wantPanic {
@@ -551,6 +557,8 @@ func TestCoverageCollector_RunBinary(t *testing.T) {
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RunBinary() error = %v, wantErr %v", err, tt.wantErr)
 				return
+			} else if err != nil && tt.errMessage != err.Error() {
+				t.Errorf("RunBinary() error =\n%v\nerrMessage =\n%v", err, tt.errMessage)
 			}
 			if tt.fields.CollectCoverage {
 				require.Equal(t, 1, len(c.tmpCoverageFiles))

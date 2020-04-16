@@ -1,6 +1,6 @@
-// +build testrunmain
+// +build testbincover
 
-package test_bin
+package main
 
 import (
 	"testing"
@@ -8,6 +8,6 @@ import (
 	"github.com/confluentinc/bincover"
 )
 
-func TestRunMain(t *testing.T) {
+func TestBincoverRunMain(t *testing.T) {
 	bincover.RunTest(main)
 }

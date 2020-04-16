@@ -85,6 +85,7 @@ func (c *CoverageCollector) TearDown() error {
 }
 
 // RunBinary runs the instrumented binary at binPath with env environment variables, executing only the test with mainTestName with the specified args.
+// Returns exit code -1 if error is non-nil.
 func (c *CoverageCollector) RunBinary(binPath string, mainTestName string, env []string, args []string) (output string, exitCode int, err error) {
 	if !c.setupFinished {
 		panic("RunBinary called before Setup")
@@ -115,10 +116,11 @@ func (c *CoverageCollector) RunBinary(binPath string, mainTestName string, env [
 		// This exit code testing requires 1.12 - https://stackoverflow.com/a/55055100/337735.
 		if exitError, ok := err.(*exec.ExitError); ok {
 			binExitCode := exitError.ExitCode()
-			format := "error running command \"%s\"\nExit code: %d\nOutput:\n%s\n"
-			return "", -1, errors.Wrapf(err, format, binPath, binExitCode, binOutput)
+			format := "unsuccessful exit by command \"%s\"\nExit code: %d\nOutput:\n%s"
+			return "", binExitCode, errors.Wrapf(exitError, format, binPath, binExitCode, binOutput)
+
 		} else {
-			format := "unexpected error running command \"%s\"\n"
+			format := "unexpected error running command \"%s\""
 			return "", -1, errors.Wrapf(err, format, binPath)
 		}
 	}

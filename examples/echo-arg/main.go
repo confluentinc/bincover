@@ -15,7 +15,7 @@ var (
 
 func main() {
 	isTest, err := strconv.ParseBool(isTest)
-	if err != nil {	
+	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}

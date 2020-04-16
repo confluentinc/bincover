@@ -40,7 +40,7 @@ func TestMainMethod(t *testing.T) {
 		{
 			name:         "succeed running main with one arg",
 			args:         []string{"hello"},
-			wantOutput:   `Your argument is "hello"\n`,
+			wantOutput:   "Your argument is \"hello\"\n",
 			wantExitCode: 0,
 		},
 		{

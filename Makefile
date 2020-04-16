@@ -25,9 +25,9 @@ lint: lint-go
 test-go:
 ifdef CI
 	@# Run unit tests with coverage.
-	@GO111MODULE=on go test .  -coverpkg=./...  -coverprofile=coverage.out
+	@GO111MODULE=on go test ./... -v -coverpkg=github.com/confluentinc/bincover  -coverprofile=coverage.out
 else
-	@GO111MODULE=on go test .
+	@GO111MODULE=on go test ./... -v
 endif
 
 .PHONY: test

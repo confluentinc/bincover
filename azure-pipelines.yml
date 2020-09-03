@@ -2,42 +2,33 @@
 # Build your Go project.
 # Add steps that test, save build artifacts, deploy, and more:
 # https://docs.microsoft.com/azure/devops/pipelines/languages/go
-
 trigger:
-  - master
+ - master
 
 pool:
-  vmImage: 'ubuntu-latest'
-
-variables:
-  GOBIN:  '$(GOPATH)/bin' # Go binaries path
-  GOROOT: '/usr/local/go1.12' # Go installation path
-  GOPATH: '$(system.defaultWorkingDirectory)/gopath' # Go workspace path
-  modulePath: '$(GOPATH)/src/github.com/$(build.repository.name)' # Path to the module's code
+   vmImage: 'ubuntu-latest'
 
 steps:
-  - script: |
-      mkdir -p '$(GOBIN)'
-      mkdir -p '$(GOPATH)/pkg'
-      mkdir -p '$(modulePath)'
-      shopt -s extglob
-      shopt -s dotglob
-      mv !(gopath) '$(modulePath)'
-      echo '##vso[task.prependpath]$(GOBIN)'
-      echo '##vso[task.prependpath]$(GOROOT)/bin'
-    displayName: 'Set up the Go workspace'
+  - task: GoTool@0
+    inputs:
+      version: '1.12'
 
   - script: |
       make deps
-    workingDirectory: '$(modulePath)'
+    workingDirectory: '$(System.DefaultWorkingDirectory)'
     displayName: 'make deps'
 
   - script: |
       make test
-    workingDirectory: '$(modulePath)'
+    workingDirectory: '$(System.DefaultWorkingDirectory)'
     displayName: 'make test'
 
   - script: |
+      ./ci/check-tidy.sh
+    workingDirectory: '$(System.DefaultWorkingDirectory)'
+    displayName: 'check-tidy'
+
+  - script: |
       bash <(curl -s https://codecov.io/bash) -t '$(CODECOV_TOKEN)'
-    workingDirectory: '$(modulePath)'
+    workingDirectory: '$(System.DefaultWorkingDirectory)'
     displayName: 'Generate Codecov report'

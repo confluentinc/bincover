@@ -6,7 +6,7 @@ GO              ?= go
 ifdef TF_BUILD
 	CI := on
 endif
-GOLANGCI_LINT_VERSION := v1.21.0
+GOLANGCI_LINT_VERSION := v1.31.0
 
 all: test
 

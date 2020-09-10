@@ -16,3 +16,6 @@
 
 # Example instrumented binary
 examples/echo-arg/instr_bin
+
+# golanci-lint installation directory
+.golangci-bin/

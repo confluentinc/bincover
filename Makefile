@@ -39,3 +39,7 @@ endif
 
 .PHONY: test
 test: lint test-go
+
+.PHONY: clean
+clean:
+	@rm -rf .golangci-bin

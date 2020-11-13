@@ -85,7 +85,7 @@ func (c *CoverageCollector) TearDown() error {
 }
 
 // RunBinary runs the instrumented binary at binPath with env environment variables, executing only the test with mainTestName with the specified args.
-func (c *CoverageCollector) RunBinary(binPath string, mainTestName string, env []string, args []string) (output string, exitCode int, err error) {
+func (c *CoverageCollector) RunBinary(binPath string, mainTestName string, env []string, args []string, stdinInput string) (output string, exitCode int, err error) {
 	if !c.setupFinished {
 		panic("RunBinary called before Setup")
 	}
@@ -106,6 +106,7 @@ func (c *CoverageCollector) RunBinary(binPath string, mainTestName string, env [
 	}
 	cmd := exec.Command(binPath, strings.Split(binArgs, " ")...)
 	cmd.Env = append(os.Environ(), env...)
+	pipeInputToStdin(cmd, stdinInput)
 	combinedOutput, err := cmd.CombinedOutput()
 	binOutput := string(combinedOutput)
 	if err != nil {
@@ -209,4 +210,22 @@ func removeTempCoverageFile(name string) {
 func haveTestsToRun(output string) bool {
 	prefix := "testing: warning: no tests to run"
 	return !strings.HasPrefix(output, prefix)
+}
+
+func pipeInputToStdin(cmd *exec.Cmd, input string) {
+	if input == "" {
+		return
+	}
+	writer, err := cmd.StdinPipe()
+	if err != nil {
+		log.Panicf("error getting Stdin pipe: %s", err.Error())
+	}
+	_, err = writer.Write([]byte(input))
+	if err != nil {
+		log.Panicf("error writing to stdin pipe: %s", err.Error())
+	}
+	err = writer.Close()
+	if err != nil {
+		log.Panicf("error closing pipe: %s", err.Error())
+	}
 }

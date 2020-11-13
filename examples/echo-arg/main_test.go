@@ -63,7 +63,7 @@ func TestMainMethod(t *testing.T) {
 	}
 	for _, tt := range tests {
 		fmt.Println(tt.name)
-		output, exitCode, err := collector.RunBinary(binPath, "TestBincoverRunMain", []string{}, tt.args)
+		output, exitCode, err := collector.RunBinary(binPath, "TestBincoverRunMain", []string{}, tt.args, "")
 		require.NoError(t, err)
 		if tt.outputPattern != nil {
 			require.Regexp(t, tt.outputPattern, output)

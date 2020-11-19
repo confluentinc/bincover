@@ -27,7 +27,11 @@ type CoverageCollector struct {
 	coverMode              string
 	tmpCoverageFiles       []*os.File
 	setupFinished          bool
+	preCmdFuncs            []CmdFunc
+	postCmdFuncs           []CmdFunc
 }
+type CoverageCollectorOption func(collector *CoverageCollector)
+type CmdFunc func(cmd *exec.Cmd) error
 
 // NewCoverageCollector initializes a CoverageCollector with the specified
 // merged coverage filename. CollectCoverage can be set to true to collect coverage,
@@ -84,14 +88,29 @@ func (c *CoverageCollector) TearDown() error {
 	return nil
 }
 
+func PreExec(cmdFuncs ...CmdFunc) CoverageCollectorOption {
+	return func(c *CoverageCollector) {
+		c.preCmdFuncs = cmdFuncs
+	}
+}
+
+func PostExec(cmdFuncs ...CmdFunc) CoverageCollectorOption {
+	return func(c *CoverageCollector) {
+		c.postCmdFuncs = cmdFuncs
+	}
+}
+
 // RunBinary runs the instrumented binary at binPath with env environment variables, executing only the test with mainTestName with the specified args.
-func (c *CoverageCollector) RunBinary(binPath string, mainTestName string, env []string, args []string, stdinInput string) (output string, exitCode int, err error) {
+func (c *CoverageCollector) RunBinary(binPath string, mainTestName string, env []string, args []string, options ... CoverageCollectorOption) (output string, exitCode int, err error) {
 	if !c.setupFinished {
 		panic("RunBinary called before Setup")
 	}
 	err = c.writeArgs(args)
 	if err != nil {
 		return "", -1, err
+	}
+	for _, option := range options {
+		option(c)
 	}
 	var binArgs string
 	var tempCovFile *os.File
@@ -106,8 +125,17 @@ func (c *CoverageCollector) RunBinary(binPath string, mainTestName string, env [
 	}
 	cmd := exec.Command(binPath, strings.Split(binArgs, " ")...)
 	cmd.Env = append(os.Environ(), env...)
-	pipeInputToStdin(cmd, stdinInput)
+	for _, cmdFunc := range c.preCmdFuncs {
+		if err := cmdFunc(cmd); err != nil {
+			return "", -1, err
+		}
+	}
 	combinedOutput, err := cmd.CombinedOutput()
+	for _, cmdFunc := range c.postCmdFuncs {
+		if err := cmdFunc(cmd); err != nil {
+			return "", -1, err
+		}
+	}
 	binOutput := string(combinedOutput)
 	if err != nil {
 		if tempCovFile != nil {
@@ -210,22 +238,4 @@ func removeTempCoverageFile(name string) {
 func haveTestsToRun(output string) bool {
 	prefix := "testing: warning: no tests to run"
 	return !strings.HasPrefix(output, prefix)
-}
-
-func pipeInputToStdin(cmd *exec.Cmd, input string) {
-	if input == "" {
-		return
-	}
-	writer, err := cmd.StdinPipe()
-	if err != nil {
-		log.Panicf("error getting Stdin pipe: %s", err.Error())
-	}
-	_, err = writer.Write([]byte(input))
-	if err != nil {
-		log.Panicf("error writing to stdin pipe: %s", err.Error())
-	}
-	err = writer.Close()
-	if err != nil {
-		log.Panicf("error closing pipe: %s", err.Error())
-	}
 }

@@ -419,7 +419,6 @@ func TestCoverageCollector_RunBinary(t *testing.T) {
 		wantPanic    bool
 		panicMessage string
 		skipSetup    bool
-		stdinInput   string
 	}{
 		{
 			name:         "panic if Setup not called",
@@ -550,11 +549,11 @@ func TestCoverageCollector_RunBinary(t *testing.T) {
 			if tt.wantPanic {
 				require.PanicsWithValue(t,
 					tt.panicMessage,
-					func() { _, _, _ = c.RunBinary(tt.args.binPath, tt.args.mainTestName, tt.args.env, tt.args.args, tt.stdinInput) },
+					func() { _, _, _ = c.RunBinary(tt.args.binPath, tt.args.mainTestName, tt.args.env, tt.args.args)},
 				)
 				return
 			}
-			gotOutput, gotExitCode, err := c.RunBinary(tt.args.binPath, tt.args.mainTestName, tt.args.env, tt.args.args, tt.stdinInput)
+			gotOutput, gotExitCode, err := c.RunBinary(tt.args.binPath, tt.args.mainTestName, tt.args.env, tt.args.args)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RunBinary() error = %v, wantErr %v", err, tt.wantErr)
 				return

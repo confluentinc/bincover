@@ -2,6 +2,7 @@ package bincover
 
 import (
 	"bytes"
+	"errors"
 	"io/ioutil"
 	"log"
 	"os"
@@ -419,6 +420,7 @@ func TestCoverageCollector_RunBinary(t *testing.T) {
 		wantPanic    bool
 		panicMessage string
 		skipSetup    bool
+		cmdFuncs     []CoverageCollectorOption
 	}{
 		{
 			name:         "panic if Setup not called",
@@ -538,6 +540,57 @@ func TestCoverageCollector_RunBinary(t *testing.T) {
 			errMessage:   "testing: warning: no tests to run\n",
 			wantExitCode: -1,
 		},
+		{
+			name: "succeed running binary with stdin pipe preCmdFunc",
+			args: args{
+				binPath:      "./test_bins/read_stdin.sh",
+				mainTestName: "",
+				env:          nil,
+				args:         nil,
+			},
+			fields: fields{
+				MergedCoverageFilename: "temp_coverage.out",
+				CollectCoverage:        false,
+			},
+			wantOutput:   "Hello world\n",
+			wantExitCode: 1,
+			wantErr: false,
+			cmdFuncs: []CoverageCollectorOption{stdinPipePreFunc()},
+		},
+		{
+			name: "fail running binary with error in preCmdFunc",
+			args: args{
+				binPath:      "./test_bins/read_stdin.sh",
+				mainTestName: "",
+				env:          nil,
+				args:         nil,
+			},
+			fields: fields{
+				MergedCoverageFilename: "temp_coverage.out",
+				CollectCoverage:        false,
+			},
+			errMessage: "oh no!",
+			wantExitCode: -1,
+			wantErr: true,
+			cmdFuncs: []CoverageCollectorOption{errPreCmdFunc()},
+		},
+		{
+			name: "fail running binary with error in postCmdFunc",
+			args: args{
+				binPath:      "./test_bins/read_stdin.sh",
+				mainTestName: "",
+				env:          nil,
+				args:         nil,
+			},
+			fields: fields{
+				MergedCoverageFilename: "temp_coverage.out",
+				CollectCoverage:        false,
+			},
+			errMessage: "oh no!",
+			wantExitCode: -1,
+			wantErr: true,
+			cmdFuncs: []CoverageCollectorOption{errPostCmdFunc()},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -549,11 +602,11 @@ func TestCoverageCollector_RunBinary(t *testing.T) {
 			if tt.wantPanic {
 				require.PanicsWithValue(t,
 					tt.panicMessage,
-					func() { _, _, _ = c.RunBinary(tt.args.binPath, tt.args.mainTestName, tt.args.env, tt.args.args)},
+					func() { _, _, _ = c.RunBinary(tt.args.binPath, tt.args.mainTestName, tt.args.env, tt.args.args, tt.cmdFuncs...)},
 				)
 				return
 			}
-			gotOutput, gotExitCode, err := c.RunBinary(tt.args.binPath, tt.args.mainTestName, tt.args.env, tt.args.args)
+			gotOutput, gotExitCode, err := c.RunBinary(tt.args.binPath, tt.args.mainTestName, tt.args.env, tt.args.args, tt.cmdFuncs...)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RunBinary() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -576,6 +629,29 @@ func TestCoverageCollector_RunBinary(t *testing.T) {
 			}
 		})
 	}
+}
+
+func stdinPipePreFunc() CoverageCollectorOption {
+	f := CmdFunc(func(cmd *exec.Cmd) error {
+		writer, _ := cmd.StdinPipe()
+		_, err := writer.Write([]byte("Hello world\n"))
+		return err
+	})
+	return PreExec(f)
+}
+
+func errPreCmdFunc() CoverageCollectorOption {
+	f := CmdFunc(func(cmd *exec.Cmd) error {
+		return errors.New("oh no!")
+	})
+	return PreExec(f)
+}
+
+func errPostCmdFunc() CoverageCollectorOption {
+	f := CmdFunc(func(cmd *exec.Cmd) error {
+		return errors.New("oh no!")
+	})
+	return PreExec(f)
 }
 
 func tempFile(t *testing.T) *os.File {

@@ -3,6 +3,7 @@ package bincover
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -640,6 +641,23 @@ func TestCoverageCollector_RunBinary(t *testing.T) {
 			wantErr: true,
 			cmdFuncs: []CoverageCollectorOption{errPostCmdFunc()},
 		},
+		{
+			name: "succeed running binary with pre and post cmdFuncs",
+			args: args{
+				binPath:      "./set_covermode",
+				mainTestName: "TestRunMain",
+				env:          nil,
+				args:         nil,
+			},
+			fields: fields{
+				MergedCoverageFilename: "temp_coverage.out",
+				CollectCoverage:        true,
+			},
+			wantOutput: "Hello world\n",
+			wantExitCode: 1,
+			wantErr: false,
+			cmdFuncs: []CoverageCollectorOption{nilPreCmdFunc(), nilPostCmdFunc()},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -699,6 +717,22 @@ func errPreCmdFunc() CoverageCollectorOption {
 func errPostCmdFunc() CoverageCollectorOption {
 	f := CmdFunc(func(cmd *exec.Cmd) error {
 		return errors.New("oh no!")
+	})
+	return PreExec(f)
+}
+
+func nilPreCmdFunc() CoverageCollectorOption {
+	f := CmdFunc(func(cmd *exec.Cmd) error {
+		fmt.Println("PreCmdFunc")
+		return nil
+	})
+	return PreExec(f)
+}
+
+func nilPostCmdFunc() CoverageCollectorOption {
+	f := CmdFunc(func(cmd *exec.Cmd) error {
+		fmt.Println("PostCmdFunc")
+		return nil
 	})
 	return PreExec(f)
 }

@@ -397,6 +397,55 @@ func TestCoverageCollector_writeArgs(t *testing.T) {
 	}
 }
 
+func TestPreAndPostExec(t *testing.T) {
+	tests := []struct {
+		name         string
+		preCmdFuncs   int
+		postCmdFuncs  int
+	}{
+		{
+			name:	"add two preCmdFuncs and one postCmdFunc",
+			preCmdFuncs: 2,
+			postCmdFuncs: 1,
+		},
+		{
+			name:	"add zero preCmdFuncs and two postCmdFunc",
+			preCmdFuncs: 0,
+			postCmdFuncs: 1,
+		},
+		{
+			name:	"zero cmdFuncs",
+			preCmdFuncs: 0,
+			postCmdFuncs: 0,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var preCmdFuncs []CmdFunc
+			for i := 0; i < tt.preCmdFuncs; i++ {
+				preCmdFuncs = append(preCmdFuncs, func(cmd *exec.Cmd) error {
+					return nil
+				})
+			}
+			var postCmdFuncs []CmdFunc
+			for j := 0; j < tt.postCmdFuncs; j++ {
+				postCmdFuncs = append(postCmdFuncs, func(cmd *exec.Cmd) error {
+					return nil
+				})
+			}
+			c := NewCoverageCollector("", false)
+			var options []CoverageCollectorOption
+			options = append(options, PreExec(preCmdFuncs...))
+			options = append(options, PostExec(postCmdFuncs...))
+			for _, option := range options {
+				option(c)
+			}
+			require.Equal(t, tt.preCmdFuncs, len(c.preCmdFuncs))
+			require.Equal(t, tt.postCmdFuncs, len(c.postCmdFuncs))
+		})
+	}
+}
+
 func TestCoverageCollector_RunBinary(t *testing.T) {
 	type fields struct {
 		MergedCoverageFilename string

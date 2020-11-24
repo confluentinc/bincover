@@ -602,7 +602,7 @@ func TestCoverageCollector_RunBinary(t *testing.T) {
 				MergedCoverageFilename: "temp_coverage.out",
 				CollectCoverage:        false,
 			},
-			wantOutput:   "Hello world\n",
+			wantOutput:   "Hello from prefunc\n",
 			wantExitCode: 1,
 			wantErr: false,
 			cmdFuncs: []CoverageCollectorOption{stdinPipePreFunc()},
@@ -701,7 +701,8 @@ func TestCoverageCollector_RunBinary(t *testing.T) {
 func stdinPipePreFunc() CoverageCollectorOption {
 	f := CmdFunc(func(cmd *exec.Cmd) error {
 		writer, _ := cmd.StdinPipe()
-		_, err := writer.Write([]byte("Hello world\n"))
+		_, err := writer.Write([]byte("Hello from prefunc\n"))
+		writer.Close()
 		return err
 	})
 	return PreExec(f)

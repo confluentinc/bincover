@@ -595,8 +595,6 @@ func TestCoverageCollector_RunBinary(t *testing.T) {
 			args: args{
 				binPath:      "./test_bins/read_stdin.sh",
 				mainTestName: "",
-				env:          nil,
-				args:         nil,
 			},
 			fields: fields{
 				MergedCoverageFilename: "temp_coverage.out",
@@ -612,8 +610,6 @@ func TestCoverageCollector_RunBinary(t *testing.T) {
 			args: args{
 				binPath:      "./test_bins/read_stdin.sh",
 				mainTestName: "",
-				env:          nil,
-				args:         nil,
 			},
 			fields: fields{
 				MergedCoverageFilename: "temp_coverage.out",

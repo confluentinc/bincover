@@ -101,7 +101,7 @@ func PostExec(cmdFuncs ...CmdFunc) CoverageCollectorOption {
 }
 
 // RunBinary runs the instrumented binary at binPath with env environment variables, executing only the test with mainTestName with the specified args.
-func (c *CoverageCollector) RunBinary(binPath string, mainTestName string, env []string, args []string, options ... CoverageCollectorOption) (output string, exitCode int, err error) {
+func (c *CoverageCollector) RunBinary(binPath string, mainTestName string, env []string, args []string, options ...CoverageCollectorOption) (output string, exitCode int, err error) {
 	if !c.setupFinished {
 		panic("RunBinary called before Setup")
 	}

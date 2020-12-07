@@ -27,11 +27,12 @@ type CoverageCollector struct {
 	coverMode              string
 	tmpCoverageFiles       []*os.File
 	setupFinished          bool
-	preCmdFuncs            []CmdFunc
-	postCmdFuncs           []CmdFunc
+	preCmdFuncs            []PreCmdFunc
+	postCmdFuncs           []PostCmdFunc
 }
 type CoverageCollectorOption func(collector *CoverageCollector)
-type CmdFunc func(cmd *exec.Cmd) error
+type PreCmdFunc func(cmd *exec.Cmd) error
+type PostCmdFunc func(cmd *exec.Cmd, output string, err error) error
 
 // NewCoverageCollector initializes a CoverageCollector with the specified
 // merged coverage filename. CollectCoverage can be set to true to collect coverage,
@@ -88,15 +89,15 @@ func (c *CoverageCollector) TearDown() error {
 	return nil
 }
 
-func PreExec(cmdFuncs ...CmdFunc) CoverageCollectorOption {
+func PreExec(preCmdFuncs ...PreCmdFunc) CoverageCollectorOption {
 	return func(c *CoverageCollector) {
-		c.preCmdFuncs = cmdFuncs
+		c.preCmdFuncs = preCmdFuncs
 	}
 }
 
-func PostExec(cmdFuncs ...CmdFunc) CoverageCollectorOption {
+func PostExec(postCmdFuncs ...PostCmdFunc) CoverageCollectorOption {
 	return func(c *CoverageCollector) {
-		c.postCmdFuncs = cmdFuncs
+		c.postCmdFuncs = postCmdFuncs
 	}
 }
 
@@ -131,11 +132,6 @@ func (c *CoverageCollector) RunBinary(binPath string, mainTestName string, env [
 		}
 	}
 	combinedOutput, err := cmd.CombinedOutput()
-	for _, cmdFunc := range c.postCmdFuncs {
-		if err := cmdFunc(cmd); err != nil {
-			return "", -1, err
-		}
-	}
 	binOutput := string(combinedOutput)
 	if err != nil {
 		if tempCovFile != nil {
@@ -160,6 +156,11 @@ func (c *CoverageCollector) RunBinary(binPath string, mainTestName string, env [
 		c.tmpCoverageFiles = append(c.tmpCoverageFiles, tempCovFile)
 	}
 	cmdOutput, coverMode, exitCode := parseCommandOutput(string(combinedOutput))
+	for _, cmdFunc := range c.postCmdFuncs {
+		if e := cmdFunc(cmd, cmdOutput, err); e != nil {
+			return "", -1, e
+		}
+	}
 	if c.CollectCoverage {
 		if c.coverMode == "" {
 			c.coverMode = coverMode

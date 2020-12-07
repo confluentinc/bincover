@@ -3,7 +3,6 @@ package bincover
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -410,13 +409,13 @@ func TestPreExec(t *testing.T) {
 	)
 
 	tests := []struct {
-		name         string
-		preCmdFuncs  []PreCmdFunc
-		expected	 string
-		args		 args
-		wantErr		 bool
-		wantErrMsg	 string
-		buffer		 *string
+		name        string
+		preCmdFuncs []PreCmdFunc
+		expected    string
+		args        args
+		wantErr     bool
+		wantErrMsg  string
+		buffer      *string
 	}{
 		{
 			name: "test running one prefunc",
@@ -424,9 +423,9 @@ func TestPreExec(t *testing.T) {
 				binPath:      "./test_bins/read_stdin.sh",
 				mainTestName: "TestRunMain",
 			},
-			buffer: &buffer1,
+			buffer:      &buffer1,
 			preCmdFuncs: []PreCmdFunc{printToBufferPreFunc(&buffer1)},
-			expected:   "Hello from prefunc\n",
+			expected:    "Hello from prefunc\n",
 		},
 		{
 			name: "test running two prefuncs",
@@ -434,9 +433,9 @@ func TestPreExec(t *testing.T) {
 				binPath:      "./test_bins/read_stdin.sh",
 				mainTestName: "TestRunMain",
 			},
-			buffer: &buffer2,
+			buffer:      &buffer2,
 			preCmdFuncs: []PreCmdFunc{printToBufferPreFunc(&buffer2), printToBufferPreFunc(&buffer2)},
-			expected:   "Hello from prefunc\nHello from prefunc\n",
+			expected:    "Hello from prefunc\nHello from prefunc\n",
 		},
 		{
 			name: "test error in prefuncs",
@@ -445,8 +444,8 @@ func TestPreExec(t *testing.T) {
 				mainTestName: "TestRunMain",
 			},
 			preCmdFuncs: []PreCmdFunc{errPreCmdFunc()},
-			wantErr: true,
-			wantErrMsg: "oh no!",
+			wantErr:     true,
+			wantErrMsg:  "oh no!",
 		},
 	}
 	for _, tt := range tests {
@@ -478,12 +477,12 @@ func TestPostExec(t *testing.T) {
 
 	tests := []struct {
 		name         string
-		postCmdFuncs  []PostCmdFunc
-		expected	 string
-		args		 args
-		wantErr		 bool
-		wantErrMsg	 string
-		buffer		 *string
+		postCmdFuncs []PostCmdFunc
+		expected     string
+		args         args
+		wantErr      bool
+		wantErrMsg   string
+		buffer       *string
 	}{
 		{
 			name: "test running one postfunc",
@@ -491,9 +490,9 @@ func TestPostExec(t *testing.T) {
 				binPath:      "./set_covermode",
 				mainTestName: "TestRunMain",
 			},
-			buffer: &buffer1,
+			buffer:       &buffer1,
 			postCmdFuncs: []PostCmdFunc{printCommandOutputToBuffer(&buffer1)},
-			expected:   "Hello world\n",
+			expected:     "Hello world\n",
 		},
 		{
 			name: "test running two prefuncs",
@@ -501,9 +500,9 @@ func TestPostExec(t *testing.T) {
 				binPath:      "./set_covermode",
 				mainTestName: "TestRunMain",
 			},
-			buffer: &buffer2,
+			buffer:       &buffer2,
 			postCmdFuncs: []PostCmdFunc{printCommandOutputToBuffer(&buffer2), printCommandOutputToBuffer(&buffer2)},
-			expected:   "Hello world\nHello world\n",
+			expected:     "Hello world\nHello world\n",
 		},
 		{
 			name: "test error in prefuncs",
@@ -512,8 +511,8 @@ func TestPostExec(t *testing.T) {
 				mainTestName: "TestRunMain",
 			},
 			postCmdFuncs: []PostCmdFunc{errPostCmdFunc()},
-			wantErr: true,
-			wantErrMsg: "oh no!",
+			wantErr:      true,
+			wantErrMsg:   "oh no!",
 		},
 	}
 	for _, tt := range tests {
@@ -687,8 +686,8 @@ func TestCoverageCollector_RunBinary(t *testing.T) {
 			},
 			wantOutput:   "Hello from prefunc\n",
 			wantExitCode: 1,
-			wantErr: false,
-			cmdFuncs: []CoverageCollectorOption{stdinPipePreFuncCovCollectorOption()},
+			wantErr:      false,
+			cmdFuncs:     []CoverageCollectorOption{stdinPipePreFuncCovCollectorOption()},
 		},
 		{
 			name: "fail running binary with error in preCmdFunc",
@@ -700,10 +699,10 @@ func TestCoverageCollector_RunBinary(t *testing.T) {
 				MergedCoverageFilename: "temp_coverage.out",
 				CollectCoverage:        false,
 			},
-			errMessage: "oh no!",
+			errMessage:   "oh no!",
 			wantExitCode: -1,
-			wantErr: true,
-			cmdFuncs: []CoverageCollectorOption{errPreCmdFuncCovCollectorOption()},
+			wantErr:      true,
+			cmdFuncs:     []CoverageCollectorOption{errPreCmdFuncCovCollectorOption()},
 		},
 		{
 			name: "fail running binary with error in postCmdFunc",
@@ -717,10 +716,10 @@ func TestCoverageCollector_RunBinary(t *testing.T) {
 				MergedCoverageFilename: "temp_coverage.out",
 				CollectCoverage:        false,
 			},
-			errMessage: "oh no!",
+			errMessage:   "oh no!",
 			wantExitCode: -1,
-			wantErr: true,
-			cmdFuncs: []CoverageCollectorOption{errPostCmdFuncCovCollectorOption()},
+			wantErr:      true,
+			cmdFuncs:     []CoverageCollectorOption{errPostCmdFuncCovCollectorOption()},
 		},
 		{
 			name: "succeed running binary with pre and post cmdFuncs",
@@ -734,10 +733,10 @@ func TestCoverageCollector_RunBinary(t *testing.T) {
 				MergedCoverageFilename: "temp_coverage.out",
 				CollectCoverage:        true,
 			},
-			wantOutput: "Hello world\n",
+			wantOutput:   "Hello world\n",
 			wantExitCode: 1,
-			wantErr: false,
-			cmdFuncs: []CoverageCollectorOption{nilPreCmdFunc(), nilPostCmdFunc()},
+			wantErr:      false,
+			cmdFuncs:     []CoverageCollectorOption{nilPreCmdFunc(), nilPostCmdFunc()},
 		},
 	}
 	for _, tt := range tests {
@@ -750,7 +749,9 @@ func TestCoverageCollector_RunBinary(t *testing.T) {
 			if tt.wantPanic {
 				require.PanicsWithValue(t,
 					tt.panicMessage,
-					func() { _, _, _ = c.RunBinary(tt.args.binPath, tt.args.mainTestName, tt.args.env, tt.args.args, tt.cmdFuncs...)},
+					func() {
+						_, _, _ = c.RunBinary(tt.args.binPath, tt.args.mainTestName, tt.args.env, tt.args.args, tt.cmdFuncs...)
+					},
 				)
 				return
 			}
@@ -799,7 +800,6 @@ func errPostCmdFuncCovCollectorOption() CoverageCollectorOption {
 
 func nilPreCmdFunc() CoverageCollectorOption {
 	f := PreCmdFunc(func(cmd *exec.Cmd) error {
-		fmt.Println("PreCmdFunc")
 		return nil
 	})
 	return PreExec(f)
@@ -836,7 +836,6 @@ func errPostCmdFunc() PostCmdFunc {
 
 func nilPostCmdFunc() CoverageCollectorOption {
 	f := PostCmdFunc(func(cmd *exec.Cmd, output string, err error) error {
-		fmt.Println("PostCmdFunc")
 		return nil
 	})
 	return PostExec(f)

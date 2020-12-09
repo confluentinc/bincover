@@ -3,6 +3,7 @@ package bincover
 import (
 	"bytes"
 	"errors"
+	"io"
 	"io/ioutil"
 	"log"
 	"os"
@@ -11,6 +12,12 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+)
+
+const (
+	ohNoErrMsg       = "oh no!"
+	preFuncHelloMsg  = "Hello from prefunc\n"
+	helloWorldOutput = "Hello world\n"
 )
 
 func TestMain(m *testing.M) {
@@ -405,7 +412,7 @@ func TestPreExec(t *testing.T) {
 		args         []string
 	}
 	var (
-		buffer1, buffer2 string
+		buffer = new(bytes.Buffer)
 	)
 
 	tests := []struct {
@@ -415,27 +422,17 @@ func TestPreExec(t *testing.T) {
 		args        args
 		wantErr     bool
 		wantErrMsg  string
-		buffer      *string
+		buffer      *bytes.Buffer
 	}{
-		{
-			name: "test running one prefunc",
-			args: args{
-				binPath:      "./test_bins/read_stdin.sh",
-				mainTestName: "TestRunMain",
-			},
-			buffer:      &buffer1,
-			preCmdFuncs: []PreCmdFunc{printToBufferPreFunc(&buffer1)},
-			expected:    "Hello from prefunc\n",
-		},
 		{
 			name: "test running two prefuncs",
 			args: args{
 				binPath:      "./test_bins/read_stdin.sh",
 				mainTestName: "TestRunMain",
 			},
-			buffer:      &buffer2,
-			preCmdFuncs: []PreCmdFunc{printToBufferPreFunc(&buffer2), printToBufferPreFunc(&buffer2)},
-			expected:    "Hello from prefunc\nHello from prefunc\n",
+			buffer:      buffer,
+			preCmdFuncs: []PreCmdFunc{printToBufferPreFunc(buffer, preFuncHelloMsg), printToBufferPreFunc(buffer, preFuncHelloMsg)},
+			expected:    preFuncHelloMsg + preFuncHelloMsg,
 		},
 		{
 			name: "test error in prefuncs",
@@ -443,9 +440,9 @@ func TestPreExec(t *testing.T) {
 				binPath:      "./test_bins/read_stdin.sh",
 				mainTestName: "TestRunMain",
 			},
-			preCmdFuncs: []PreCmdFunc{errPreCmdFunc()},
+			preCmdFuncs: []PreCmdFunc{errPreCmdFunc(ohNoErrMsg)},
 			wantErr:     true,
-			wantErrMsg:  "oh no!",
+			wantErrMsg:  ohNoErrMsg,
 		},
 	}
 	for _, tt := range tests {
@@ -457,7 +454,7 @@ func TestPreExec(t *testing.T) {
 				require.Error(t, err)
 				require.Equal(t, tt.wantErrMsg, err.Error())
 			} else {
-				require.Equal(t, tt.expected, *tt.buffer)
+				require.Equal(t, tt.expected, tt.buffer.String())
 				require.NoError(t, err)
 			}
 		})
@@ -472,7 +469,7 @@ func TestPostExec(t *testing.T) {
 		args         []string
 	}
 	var (
-		buffer1, buffer2 string
+		buffer = new(bytes.Buffer)
 	)
 
 	tests := []struct {
@@ -482,27 +479,17 @@ func TestPostExec(t *testing.T) {
 		args         args
 		wantErr      bool
 		wantErrMsg   string
-		buffer       *string
+		buffer       *bytes.Buffer
 	}{
-		{
-			name: "test running one postfunc",
-			args: args{
-				binPath:      "./set_covermode",
-				mainTestName: "TestRunMain",
-			},
-			buffer:       &buffer1,
-			postCmdFuncs: []PostCmdFunc{printCommandOutputToBuffer(&buffer1)},
-			expected:     "Hello world\n",
-		},
 		{
 			name: "test running two prefuncs",
 			args: args{
 				binPath:      "./set_covermode",
 				mainTestName: "TestRunMain",
 			},
-			buffer:       &buffer2,
-			postCmdFuncs: []PostCmdFunc{printCommandOutputToBuffer(&buffer2), printCommandOutputToBuffer(&buffer2)},
-			expected:     "Hello world\nHello world\n",
+			buffer:       buffer,
+			postCmdFuncs: []PostCmdFunc{printCommandOutputToBuffer(buffer), printCommandOutputToBuffer(buffer)},
+			expected:     helloWorldOutput + helloWorldOutput,
 		},
 		{
 			name: "test error in prefuncs",
@@ -510,9 +497,9 @@ func TestPostExec(t *testing.T) {
 				binPath:      "./set_covermode",
 				mainTestName: "TestRunMain",
 			},
-			postCmdFuncs: []PostCmdFunc{errPostCmdFunc()},
+			postCmdFuncs: []PostCmdFunc{errPostCmdFunc(ohNoErrMsg)},
 			wantErr:      true,
-			wantErrMsg:   "oh no!",
+			wantErrMsg:   ohNoErrMsg,
 		},
 	}
 	for _, tt := range tests {
@@ -524,7 +511,7 @@ func TestPostExec(t *testing.T) {
 				require.Error(t, err)
 				require.Equal(t, tt.wantErrMsg, err.Error())
 			} else {
-				require.Equal(t, tt.expected, *tt.buffer)
+				require.Equal(t, tt.expected, tt.buffer.String())
 				require.NoError(t, err)
 			}
 		})
@@ -699,10 +686,10 @@ func TestCoverageCollector_RunBinary(t *testing.T) {
 				MergedCoverageFilename: "temp_coverage.out",
 				CollectCoverage:        false,
 			},
-			errMessage:   "oh no!",
+			errMessage:   ohNoErrMsg,
 			wantExitCode: -1,
 			wantErr:      true,
-			cmdFuncs:     []CoverageCollectorOption{errPreCmdFuncCovCollectorOption()},
+			cmdFuncs:     []CoverageCollectorOption{errPreCmdFuncCovCollectorOption(ohNoErrMsg)},
 		},
 		{
 			name: "fail running binary with error in postCmdFunc",
@@ -716,10 +703,10 @@ func TestCoverageCollector_RunBinary(t *testing.T) {
 				MergedCoverageFilename: "temp_coverage.out",
 				CollectCoverage:        false,
 			},
-			errMessage:   "oh no!",
+			errMessage:   ohNoErrMsg,
 			wantExitCode: -1,
 			wantErr:      true,
-			cmdFuncs:     []CoverageCollectorOption{errPostCmdFuncCovCollectorOption()},
+			cmdFuncs:     []CoverageCollectorOption{errPostCmdFuncCovCollectorOption(ohNoErrMsg)},
 		},
 		{
 			name: "succeed running binary with pre and post cmdFuncs",
@@ -790,12 +777,12 @@ func stdinPipePreFuncCovCollectorOption() CoverageCollectorOption {
 	return PreExec(f)
 }
 
-func errPreCmdFuncCovCollectorOption() CoverageCollectorOption {
-	return PreExec(errPreCmdFunc())
+func errPreCmdFuncCovCollectorOption(errMsg string) CoverageCollectorOption {
+	return PreExec(errPreCmdFunc(errMsg))
 }
 
-func errPostCmdFuncCovCollectorOption() CoverageCollectorOption {
-	return PostExec(errPostCmdFunc())
+func errPostCmdFuncCovCollectorOption(errMsg string) CoverageCollectorOption {
+	return PostExec(errPostCmdFunc(errMsg))
 }
 
 func nilPreCmdFunc() CoverageCollectorOption {
@@ -805,31 +792,32 @@ func nilPreCmdFunc() CoverageCollectorOption {
 	return PreExec(f)
 }
 
-func printToBufferPreFunc(buffer *string) PreCmdFunc {
+func printToBufferPreFunc(w io.Writer, toWrite string) PreCmdFunc {
 	f := PreCmdFunc(func(cmd *exec.Cmd) error {
-		*buffer += "Hello from prefunc\n"
-		return nil
+		_, err := w.Write([]byte(toWrite))
+		return err
 	})
 	return f
 }
 
-func errPreCmdFunc() PreCmdFunc {
+func errPreCmdFunc(errMsg string) PreCmdFunc {
 	f := PreCmdFunc(func(cmd *exec.Cmd) error {
-		return errors.New("oh no!")
+		return errors.New(errMsg)
 	})
 	return f
 }
 
-func printCommandOutputToBuffer(buffer *string) PostCmdFunc {
+func printCommandOutputToBuffer(w io.Writer) PostCmdFunc {
 	f := PostCmdFunc(func(cmd *exec.Cmd, output string, err error) error {
-		*buffer += output
-		return nil
+		_, writeErr := w.Write([]byte(output))
+		return writeErr
 	})
 	return f
 }
-func errPostCmdFunc() PostCmdFunc {
+
+func errPostCmdFunc(errMsg string) PostCmdFunc {
 	f := PostCmdFunc(func(cmd *exec.Cmd, output string, err error) error {
-		return errors.New("oh no!")
+		return errors.New(errMsg)
 	})
 	return f
 }

@@ -27,7 +27,12 @@ type CoverageCollector struct {
 	coverMode              string
 	tmpCoverageFiles       []*os.File
 	setupFinished          bool
+	preCmdFuncs            []PreCmdFunc
+	postCmdFuncs           []PostCmdFunc
 }
+type CoverageCollectorOption func(collector *CoverageCollector)
+type PreCmdFunc func(cmd *exec.Cmd) error
+type PostCmdFunc func(cmd *exec.Cmd, output string, err error) error
 
 // NewCoverageCollector initializes a CoverageCollector with the specified
 // merged coverage filename. CollectCoverage can be set to true to collect coverage,
@@ -84,14 +89,29 @@ func (c *CoverageCollector) TearDown() error {
 	return nil
 }
 
+func PreExec(preCmdFuncs ...PreCmdFunc) CoverageCollectorOption {
+	return func(c *CoverageCollector) {
+		c.preCmdFuncs = preCmdFuncs
+	}
+}
+
+func PostExec(postCmdFuncs ...PostCmdFunc) CoverageCollectorOption {
+	return func(c *CoverageCollector) {
+		c.postCmdFuncs = postCmdFuncs
+	}
+}
+
 // RunBinary runs the instrumented binary at binPath with env environment variables, executing only the test with mainTestName with the specified args.
-func (c *CoverageCollector) RunBinary(binPath string, mainTestName string, env []string, args []string) (output string, exitCode int, err error) {
+func (c *CoverageCollector) RunBinary(binPath string, mainTestName string, env []string, args []string, options ...CoverageCollectorOption) (output string, exitCode int, err error) {
 	if !c.setupFinished {
 		panic("RunBinary called before Setup")
 	}
 	err = c.writeArgs(args)
 	if err != nil {
 		return "", -1, err
+	}
+	for _, option := range options {
+		option(c)
 	}
 	var binArgs string
 	var tempCovFile *os.File
@@ -106,6 +126,11 @@ func (c *CoverageCollector) RunBinary(binPath string, mainTestName string, env [
 	}
 	cmd := exec.Command(binPath, strings.Split(binArgs, " ")...)
 	cmd.Env = append(os.Environ(), env...)
+	for _, cmdFunc := range c.preCmdFuncs {
+		if err := cmdFunc(cmd); err != nil {
+			return "", -1, err
+		}
+	}
 	combinedOutput, err := cmd.CombinedOutput()
 	binOutput := string(combinedOutput)
 	if err != nil {
@@ -131,6 +156,11 @@ func (c *CoverageCollector) RunBinary(binPath string, mainTestName string, env [
 		c.tmpCoverageFiles = append(c.tmpCoverageFiles, tempCovFile)
 	}
 	cmdOutput, coverMode, exitCode := parseCommandOutput(string(combinedOutput))
+	for _, cmdFunc := range c.postCmdFuncs {
+		if e := cmdFunc(cmd, cmdOutput, err); e != nil {
+			return "", -1, e
+		}
+	}
 	if c.CollectCoverage {
 		if c.coverMode == "" {
 			c.coverMode = coverMode

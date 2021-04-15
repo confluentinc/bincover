@@ -28,7 +28,7 @@ steps:
     workingDirectory: '$(System.DefaultWorkingDirectory)'
     displayName: 'check-tidy'
 
-  - script: |
-      bash <(curl -s https://codecov.io/bash) -t '$(CODECOV_TOKEN)'
-    workingDirectory: '$(System.DefaultWorkingDirectory)'
-    displayName: 'Generate Codecov report'
+#  - script: |
+#      bash <(curl -s https://codecov.io/bash) -t '$(CODECOV_TOKEN)'
+#    workingDirectory: '$(System.DefaultWorkingDirectory)'
+#    displayName: 'Generate Codecov report'

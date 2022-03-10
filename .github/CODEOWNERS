@@ -1,0 +1,3 @@
+# See go/codeowners - automatically generated for confluentinc/bincover:
+*	@confluentinc/cli
+*	@confluentinc/security

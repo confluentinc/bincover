@@ -574,6 +574,19 @@ func TestCoverageCollector_RunBinary(t *testing.T) {
 			wantExitCode: 1,
 		},
 		{
+			name:    "can suppress error on non-zero exit codes",
+			wantErr: false,
+			args: args{
+				binPath:      "./test_bins/exit_1.sh",
+				mainTestName: "",
+				env:          nil,
+				args:         nil,
+			},
+			wantOutput:   "Hello world\n",
+			wantExitCode: 1,
+			cmdFuncs:     []CoverageCollectorOption{SuppressNonZeroExitError},
+		},
+		{
 			name: "succeed running binary when coverage is disabled",
 			args: args{
 				binPath:      "./set_covermode",

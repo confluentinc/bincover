@@ -1,0 +1,12 @@
+name: bincover
+lang: go
+lang_version: 1.19.4
+git:
+  enable: true
+  hooks:
+    enable: true
+gitignore:
+  enable: true
+github:
+  enable: true
+  repo_name: confluentinc/bincover

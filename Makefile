@@ -1,10 +1,12 @@
+.golangci-bin:
+	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $@ v1.50.1
+
 .PHONY: deps
-deps:
-	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.50.1
+deps: .golangci-bin
 
 .PHONY: lint
 lint: deps
-	golangci-lint run --timeout=10m
+	.golangci-bin/golangci-lint run --timeout=10m
 
 .PHONY: test
 test:

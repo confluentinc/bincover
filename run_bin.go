@@ -3,7 +3,7 @@ package bincover
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"os"
 	"os/exec"
@@ -50,7 +50,7 @@ func (c *CoverageCollector) Setup() error {
 		return errors.New("merged coverage profile filename cannot be empty when CollectCoverage is true")
 	}
 	var err error
-	c.tmpArgsFile, err = ioutil.TempFile("", defaultTmpArgsFilePrefix)
+	c.tmpArgsFile, err = os.CreateTemp("", defaultTmpArgsFilePrefix)
 	if err != nil {
 		return errors.Wrap(err, "error creating temporary args file")
 	}
@@ -68,7 +68,7 @@ func (c *CoverageCollector) TearDown() error {
 	header := fmt.Sprintf("mode: %s", c.coverMode)
 	var parsedProfiles []string
 	for _, file := range c.tmpCoverageFiles {
-		buf, err := ioutil.ReadAll(file)
+		buf, err := io.ReadAll(file)
 		if err != nil {
 			return errors.Wrap(err, "error reading temp coverage profiles")
 		}
@@ -82,7 +82,7 @@ func (c *CoverageCollector) TearDown() error {
 		parsedProfiles = append(parsedProfiles, parsedProfile)
 	}
 	mergedProfile := fmt.Sprintf("%s\n%s", header, strings.Join(parsedProfiles, "\n"))
-	err := ioutil.WriteFile(c.MergedCoverageFilename, []byte(mergedProfile), 0600)
+	err := os.WriteFile(c.MergedCoverageFilename, []byte(mergedProfile), 0600)
 	if err != nil {
 		return errors.Wrap(err, "error writing merged coverage profile")
 	}
@@ -116,7 +116,7 @@ func (c *CoverageCollector) RunBinary(binPath string, mainTestName string, env [
 	var binArgs string
 	var tempCovFile *os.File
 	if c.CollectCoverage {
-		tempCovFile, err = ioutil.TempFile("", defaultTmpCoverageFilePrefix)
+		tempCovFile, err = os.CreateTemp("", defaultTmpCoverageFilePrefix)
 		if err != nil {
 			return "", -1, err
 		}

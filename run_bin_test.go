@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -190,7 +189,7 @@ func TestCoverageCollector_TearDown(t *testing.T) {
 			}
 			if c.MergedCoverageFilename != "" && !tt.wantErr {
 				defer os.Remove(c.MergedCoverageFilename)
-				buf, err := ioutil.ReadFile(c.MergedCoverageFilename)
+				buf, err := os.ReadFile(c.MergedCoverageFilename)
 				require.NoError(t, err)
 				contents := string(buf)
 				require.Equal(t, tt.mergedFileContents, contents)
@@ -396,7 +395,7 @@ func TestCoverageCollector_writeArgs(t *testing.T) {
 				t.Errorf("writeArgs() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if !tt.wantErr {
-				buf, err := ioutil.ReadAll(c.tmpArgsFile)
+				buf, err := io.ReadAll(c.tmpArgsFile)
 				require.NoError(t, err)
 				require.Equal(t, tt.wantArgFileContent, string(buf))
 			}
@@ -751,7 +750,7 @@ func TestCoverageCollector_RunBinary(t *testing.T) {
 			}
 			if tt.fields.CollectCoverage {
 				require.Equal(t, 1, len(c.tmpCoverageFiles))
-				buf, err := ioutil.ReadAll(c.tmpCoverageFiles[0])
+				buf, err := io.ReadAll(c.tmpCoverageFiles[0])
 				require.NoError(t, err)
 				require.NotZero(t, len(buf))
 			} else {
@@ -830,7 +829,7 @@ func nilPostCmdFunc() CoverageCollectorOption {
 }
 
 func tempFile(t *testing.T) *os.File {
-	f, err := ioutil.TempFile("", "")
+	f, err := os.CreateTemp("", "")
 	require.NoError(t, err)
 	return f
 }

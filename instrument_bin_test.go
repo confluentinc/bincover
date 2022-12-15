@@ -2,7 +2,7 @@ package bincover
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"reflect"
 	"testing"
@@ -83,7 +83,7 @@ func TestRunTest(t *testing.T) {
 			}
 			_, err := tempStdout.Seek(0, 0)
 			require.NoError(t, err)
-			buf, err := ioutil.ReadAll(tempStdout)
+			buf, err := io.ReadAll(tempStdout)
 			require.NoError(t, err)
 			if tt.wantOutputPattern != "" {
 				require.Regexp(t, tt.wantOutputPattern, string(buf))
@@ -170,7 +170,7 @@ func Test_printMetadata(t *testing.T) {
 			printMetadata(tt.args.metadata)
 			_, err := tempStdout.Seek(0, 0)
 			require.NoError(t, err)
-			buf, err := ioutil.ReadAll(tempStdout)
+			buf, err := io.ReadAll(tempStdout)
 			require.NoError(t, err)
 			require.Equal(t, tt.wantOutput, string(buf))
 		})

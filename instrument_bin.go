@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"runtime/debug"
 	"strings"
@@ -22,7 +21,7 @@ const (
 )
 
 func parseCustomArgs() ([]string, error) {
-	buf, err := ioutil.ReadFile(*argsFilename)
+	buf, err := os.ReadFile(*argsFilename)
 	if err != nil {
 		return nil, err
 	}

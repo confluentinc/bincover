@@ -11,12 +11,12 @@ pool:
 steps:
   - task: GoTool@0
     inputs:
-      version: '1.12'
+      version: '1.19.4'
 
   - script: |
-      make deps
+      make lint
     workingDirectory: '$(System.DefaultWorkingDirectory)'
-    displayName: 'make deps'
+    displayName: 'make lint'
 
   - script: |
       make test

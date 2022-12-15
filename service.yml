@@ -5,8 +5,8 @@ git:
   enable: true
   hooks:
     enable: true
-gitignore:
-  enable: true
 github:
   enable: true
   repo_name: confluentinc/bincover
+gitignore:
+  enable: true

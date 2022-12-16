@@ -1,6 +1,6 @@
 # bincover
 
-[![GoDoc](https://pkg.go.dev/badge/github.com/confluentinc/bincover)](https://pkg.go.dev/github.com/confluentinc/bincover)
+[![Go Reference](https://pkg.go.dev/badge/github.com/confluentinc/bincover.svg)](https://pkg.go.dev/github.com/confluentinc/bincover)
 
 Easily measure code coverage of Golang binaries
 

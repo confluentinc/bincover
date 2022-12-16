@@ -1,6 +1,10 @@
 .golangci-bin:
 	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $@ v1.50.1
 
+.PHONY: clean
+clean:
+	rm -r .golangci-bin
+
 .PHONY: deps
 deps: .golangci-bin
 

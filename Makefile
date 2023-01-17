@@ -1,21 +1,13 @@
-.golangci-bin:
-	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $@ v1.50.1
-
-.PHONY: clean
-clean:
-	rm -r .golangci-bin
-
-.PHONY: deps
-deps: .golangci-bin
-
 .PHONY: lint
-lint: deps
-	.golangci-bin/golangci-lint run --timeout=10m
+lint:
+	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.50.1
+	golangci-lint run --timeout=10m
 
 .PHONY: test
 test:
 ifdef CI
-	go test ./... -v -coverpkg=github.com/confluentinc/bincover -coverprofile=coverage.out
+	go install gotest.tools/gotestsum@v1.8.2
+	gotestsum --junitfile test-report.xml -- -v ./...
 else
-	go test ./... -v
+	go test -v ./...
 endif

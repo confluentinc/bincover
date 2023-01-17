@@ -1,0 +1,60 @@
+version: v1.0
+name: bincover
+
+agent:
+  machine:
+    type: e1-standard-2
+    os_image: ubuntu2004
+
+auto_cancel:
+  running:
+    when: "true"
+
+execution_time_limit:
+  hours: 1
+
+blocks:
+  - name: linux/amd64
+    dependencies: []
+    task:
+      jobs:
+        - name: linux/amd64
+          commands:
+            - checkout
+            - sem-version go $(cat .go-version)
+
+            - make lint
+            - make test
+      epilogue:
+        always:
+          commands:
+            - test-results publish . -N "linux/amd64"
+
+  - name: darwin/amd64
+    dependencies: []
+    task:
+      agent:
+        machine:
+          type: a1-standard-4
+          os_image: macos-xcode14
+      jobs:
+        - name: darwin/amd64
+          commands:
+            - checkout
+            - wget https://go.dev/dl/go$(cat .go-version).darwin-amd64.tar.gz
+            - sudo tar -xf go$(cat .go-version).darwin-amd64.tar.gz -C /usr/local
+            - export PATH=$PATH:/usr/local/go/bin
+            - export PATH=$PATH:$(go env GOPATH)/bin
+
+            - make test
+      epilogue:
+        always:
+          commands:
+            - test-results publish . -N "darwin/amd64"
+
+after_pipeline:
+  task:
+    jobs:
+      - name: Publish Results
+        commands:
+          - test-results gen-pipeline-report

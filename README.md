@@ -2,6 +2,4 @@
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/confluentinc/bincover.svg)](https://pkg.go.dev/github.com/confluentinc/bincover)
 
-Easily measure code coverage of Golang binaries
-
-Check out [this](https://www.confluent.io/blog/measure-go-code-coverage-with-bincover/) blog post to see an example of how bincover is used, and how it works under the hood.
+This project has been deprecated in favor of the built-in Go coverage profiling tool for integration tests (go1.20 and above): https://go.dev/testing/coverage/

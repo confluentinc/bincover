@@ -25,6 +25,7 @@ type CoverageCollector struct {
 	CollectCoverage        bool
 	tmpArgsFile            *os.File
 	coverMode              string
+	suppressExitErrors     bool
 	tmpCoverageFiles       []*os.File
 	setupFinished          bool
 	preCmdFuncs            []PreCmdFunc
@@ -101,6 +102,12 @@ func PostExec(postCmdFuncs ...PostCmdFunc) CoverageCollectorOption {
 	}
 }
 
+// SuppressNonZeroExitError stops returning an error value when the binary returns a non-zero exit code. You will still
+// see an error in other circumstances.
+func SuppressNonZeroExitError(collector *CoverageCollector) {
+	collector.suppressExitErrors = true
+}
+
 // RunBinary runs the instrumented binary at binPath with env environment variables, executing only the test with mainTestName with the specified args.
 func (c *CoverageCollector) RunBinary(binPath string, mainTestName string, env []string, args []string, options ...CoverageCollectorOption) (output string, exitCode int, err error) {
 	if !c.setupFinished {
@@ -140,6 +147,9 @@ func (c *CoverageCollector) RunBinary(binPath string, mainTestName string, env [
 		// This exit code testing requires 1.12 - https://stackoverflow.com/a/55055100/337735.
 		if exitError, ok := err.(*exec.ExitError); ok {
 			binExitCode := exitError.ExitCode()
+			if c.suppressExitErrors {
+				return binOutput, binExitCode, nil
+			}
 			format := "unsuccessful exit by command \"%s\"\nExit code: %d\nOutput:\n%s"
 			return "", binExitCode, errors.Wrapf(exitError, format, binPath, binExitCode, binOutput)
 
